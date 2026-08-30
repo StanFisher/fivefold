@@ -336,7 +336,9 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 return (
                   <div
                     key={index}
-                    className="relative flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 p-3 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                    className={`relative flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 p-3 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition-colors ${
+                      isPickerOpen ? 'z-30' : 'z-10'
+                    }`}
                   >
                     {/* Option A: Clickable Avatar Circle with Floating Swatch Popover */}
                     <div className="relative">

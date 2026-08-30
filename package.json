@@ -9,7 +9,7 @@
     "prod:start": "npm run build && FIVEFOLD_ENV=production next start",
     "prod:backup": "tsx scripts/backup-db.ts",
     "start": "FIVEFOLD_ENV=production next start",
-    "test": "FIVEFOLD_ENV=test tsx src/lib/__tests__/interest.test.ts && FIVEFOLD_ENV=test tsx src/lib/__tests__/db.test.ts",
+    "test": "FIVEFOLD_ENV=test tsx src/lib/__tests__/interest.test.ts && FIVEFOLD_ENV=test tsx src/lib/__tests__/db.test.ts && FIVEFOLD_ENV=test tsx src/lib/__tests__/onboarding.test.ts",
     "lint": "eslint"
   },
   "dependencies": {
