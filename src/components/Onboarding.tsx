@@ -205,14 +205,12 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
         </div>
       )}
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="flex justify-center items-center gap-3 mb-2">
-          <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 p-1.5 flex items-center justify-center shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <img src="/logo.png" alt="FiveFold Logo" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">FiveFold</h1>
+      <div className="sm:mx-auto sm:w-full sm:max-w-2xl text-center">
+        <div className="flex flex-col justify-center items-center gap-3 mb-2">
+          <img src="/logo.png" alt="FiveFold Logo" className="h-24 sm:h-28 w-auto object-contain transition-transform hover:scale-105" />
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">FiveFold</h1>
         </div>
-        <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
+        <p className="text-center text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto">
           Pooled Kids&apos; Savings Account &amp; APY Interest Reconciliation Manager
         </p>
       </div>

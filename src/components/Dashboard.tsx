@@ -119,15 +119,13 @@ export function Dashboard({
 
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 flex items-center justify-center shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <img src="/logo.png" alt="FiveFold Logo" className="w-full h-full object-contain" />
-            </div>
+          <div className="flex items-center gap-3.5">
+            <img src="/logo.png" alt="FiveFold Logo" className="h-12 sm:h-13 w-auto object-contain flex-shrink-0 transition-transform hover:scale-105" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">FiveFold</span>
+                <span className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">FiveFold</span>
                 {environment?.isDev ? (
                   <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                     DEV
@@ -138,7 +136,7 @@ export function Dashboard({
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 block -mt-0.5">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 block -mt-0.5">
                 {settings.accountName}
               </span>
             </div>
