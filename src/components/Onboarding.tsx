@@ -11,22 +11,23 @@ interface OnboardingProps {
 }
 
 export function Onboarding({ onComplete, environment }: OnboardingProps) {
-  const [apy, setApy] = useState<string>('5.00');
-  const [accountName, setAccountName] = useState<string>('Wealthfront Cash Account');
-  const [totalBalance, setTotalBalance] = useState<string>('10000.00');
+  const [apy, setApy] = useState<string>('');
+  const [accountName, setAccountName] = useState<string>('');
+  const [totalBalance, setTotalBalance] = useState<string>('');
   const [mode, setMode] = useState<'amount' | 'percent'>('amount');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [childrenData, setChildrenData] = useState([
-    { name: 'Child 1', color: PRESET_COLORS[0].hex, amount: '2000.00', percent: '20' },
-    { name: 'Child 2', color: PRESET_COLORS[1].hex, amount: '2000.00', percent: '20' },
-    { name: 'Child 3', color: PRESET_COLORS[2].hex, amount: '2000.00', percent: '20' },
-    { name: 'Child 4', color: PRESET_COLORS[3].hex, amount: '2000.00', percent: '20' },
-    { name: 'Child 5', color: PRESET_COLORS[4].hex, amount: '2000.00', percent: '20' },
+    { name: '', color: PRESET_COLORS[0].hex, amount: '', percent: '' },
+    { name: '', color: PRESET_COLORS[1].hex, amount: '', percent: '' },
+    { name: '', color: PRESET_COLORS[2].hex, amount: '', percent: '' },
+    { name: '', color: PRESET_COLORS[3].hex, amount: '', percent: '' },
+    { name: '', color: PRESET_COLORS[4].hex, amount: '', percent: '' },
   ]);
 
   const parsedTotal = parseFloat(totalBalance) || 0;
+  const parsedApy = parseFloat(apy) || 0;
 
   const currentAllocated = childrenData.reduce((sum, c) => {
     if (mode === 'amount') {
@@ -40,6 +41,8 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const roundedAllocated = Number(currentAllocated.toFixed(2));
   const remaining = Number((parsedTotal - roundedAllocated).toFixed(2));
   const isBalanced = Math.abs(remaining) < 0.01 && parsedTotal > 0;
+  const allNamesEntered = childrenData.every((c) => c.name.trim().length > 0);
+  const canSubmit = isBalanced && allNamesEntered && parsedApy > 0 && accountName.trim().length > 0;
 
   const handleSplitEvenly = () => {
     if (parsedTotal <= 0) return;
@@ -60,12 +63,20 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
     const updated = [...childrenData];
     updated[index] = { ...updated[index], [field]: value };
 
-    if (field === 'amount' && parsedTotal > 0) {
-      const amt = parseFloat(value) || 0;
-      updated[index].percent = ((amt / parsedTotal) * 100).toFixed(1);
-    } else if (field === 'percent' && parsedTotal > 0) {
-      const pct = parseFloat(value) || 0;
-      updated[index].amount = ((parsedTotal * pct) / 100).toFixed(2);
+    if (field === 'amount') {
+      if (value === '' || isNaN(parseFloat(value))) {
+        updated[index].percent = '';
+      } else if (parsedTotal > 0) {
+        const amt = parseFloat(value) || 0;
+        updated[index].percent = ((amt / parsedTotal) * 100).toFixed(1);
+      }
+    } else if (field === 'percent') {
+      if (value === '' || isNaN(parseFloat(value))) {
+        updated[index].amount = '';
+      } else if (parsedTotal > 0) {
+        const pct = parseFloat(value) || 0;
+        updated[index].amount = ((parsedTotal * pct) / 100).toFixed(2);
+      }
     }
 
     setChildrenData(updated);
@@ -74,19 +85,39 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const handleTotalBalanceChange = (newTotalStr: string) => {
     setTotalBalance(newTotalStr);
     const newTotal = parseFloat(newTotalStr) || 0;
-    if (mode === 'percent' && newTotal > 0) {
-      const updated = childrenData.map((c) => ({
-        ...c,
-        amount: ((newTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2),
-      }));
+    if (mode === 'percent') {
+      const updated = childrenData.map((c) => {
+        if (!c.percent || newTotal <= 0) {
+          return { ...c, amount: '' };
+        }
+        return {
+          ...c,
+          amount: ((newTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2),
+        };
+      });
       setChildrenData(updated);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isBalanced) {
-      setError(`Allocations must sum exactly to the total account balance ($${remaining} remaining).`);
+    if (!canSubmit) {
+      if (!accountName.trim()) {
+        setError('Please enter your Bank / Account Name.');
+        return;
+      }
+      if (parsedApy <= 0) {
+        setError('Please enter a valid APY percentage.');
+        return;
+      }
+      if (!allNamesEntered) {
+        setError('Please enter names for all 5 children.');
+        return;
+      }
+      if (!isBalanced) {
+        setError(`Allocations must sum exactly to the total account balance ($${remaining} remaining).`);
+        return;
+      }
       return;
     }
 
@@ -95,10 +126,10 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
     try {
       const payload = {
-        apy: parseFloat(apy) || 5.0,
-        accountName,
+        apy: parsedApy,
+        accountName: accountName.trim(),
         children: childrenData.map((c) => ({
-          name: c.name.trim() || 'Child',
+          name: c.name.trim(),
           color: c.color,
           initialAmount:
             mode === 'amount'
@@ -191,7 +222,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                     value={apy}
                     onChange={(e) => setApy(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-8"
-                    placeholder="5.00"
+                    placeholder="e.g. 5.00"
                     required
                   />
                   <span className="absolute right-3 top-2.5 text-slate-500 text-sm font-medium">%</span>
@@ -205,13 +236,15 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Current Total Bank Account Balance
                 </label>
-                <button
-                  type="button"
-                  onClick={handleSplitEvenly}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto"
-                >
-                  Split balance equally across all 5
-                </button>
+                {parsedTotal > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSplitEvenly}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto"
+                  >
+                    Split balance equally across all 5
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <span className="absolute left-3.5 top-2.5 text-slate-400 text-base font-semibold">$</span>
@@ -222,7 +255,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   value={totalBalance}
                   onChange={(e) => handleTotalBalanceChange(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-600 rounded-xl pl-8 pr-4 py-2.5 text-white font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="10000.00"
+                  placeholder="0.00"
                   required
                 />
               </div>
@@ -308,7 +341,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                         value={child.percent}
                         onChange={(e) => handleChildChange(index, 'percent', e.target.value)}
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="20.0"
+                        placeholder="0.0"
                         required
                       />
                       <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
@@ -318,23 +351,31 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
               ))}
             </div>
 
-            {/* Reconciliation status bar */}
+            {/* Allocation & Reconciliation status bar */}
             <div
               className={`p-4 rounded-xl border flex items-center justify-between text-sm transition-all ${
                 isBalanced
                   ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
-                  : 'bg-amber-950/40 border-amber-800/60 text-amber-300'
+                  : parsedTotal > 0
+                  ? 'bg-amber-950/40 border-amber-800/60 text-amber-300'
+                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
               }`}
             >
               <div className="flex items-center gap-2.5">
                 {isBalanced ? (
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 ) : (
-                  <AlertCircle className="w-5 h-5 text-amber-400" />
+                  <AlertCircle
+                    className={`w-5 h-5 ${parsedTotal > 0 ? 'text-amber-400' : 'text-slate-400'}`}
+                  />
                 )}
                 <div>
-                  <span className="font-semibold">
-                    {isBalanced ? 'Account Balanced' : 'Allocation Mismatch'}
+                  <span className="font-semibold text-slate-200">
+                    {isBalanced
+                      ? 'Account Balanced'
+                      : parsedTotal > 0
+                      ? 'Allocation Mismatch'
+                      : 'Initial Allocation'}
                   </span>
                   <p className="text-xs opacity-80">
                     Allocated: {formatCurrency(roundedAllocated)} of {formatCurrency(parsedTotal)}
@@ -344,7 +385,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
               <div className="text-right">
                 <span className="text-xs uppercase font-medium tracking-wider opacity-75">
-                  {isBalanced ? 'Difference' : 'Remaining to Allocate'}
+                  {isBalanced ? 'Difference' : 'Remaining'}
                 </span>
                 <p className="text-base font-bold font-mono">
                   {formatCurrency(Math.abs(remaining))}
@@ -355,9 +396,9 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={!isBalanced || loading}
+              disabled={!canSubmit || loading}
               className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-white shadow-lg transition-all ${
-                isBalanced && !loading
+                canSubmit && !loading
                   ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/25 cursor-pointer'
                   : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-60'
               }`}
