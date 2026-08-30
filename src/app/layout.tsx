@@ -5,6 +5,10 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 export const metadata: Metadata = {
   title: 'FiveFold – Multi-Child Savings & APY Interest Manager',
   description: 'Track pooled savings, auto-distribute monthly bank APY interest, and reconcile child sub-accounts.',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({

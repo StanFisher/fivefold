@@ -207,8 +207,8 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="flex justify-center items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 p-1.5 flex items-center justify-center shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <img src="/logo.png" alt="FiveFold Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">FiveFold</h1>
         </div>
