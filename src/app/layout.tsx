@@ -6,7 +6,11 @@ export const metadata: Metadata = {
   title: 'FiveFold – Multi-Child Savings & APY Interest Manager',
   description: 'Track pooled savings, auto-distribute monthly bank APY interest, and reconcile child sub-accounts.',
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
     apple: '/logo.png',
   },
 };
