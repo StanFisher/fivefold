@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2, Check } from 'lucide-react';
 import { formatCurrency, PRESET_COLORS } from '@/lib/formatters';
 import { EnvironmentInfo } from '@/lib/types';
+import { ThemeToggle } from './ThemeToggle';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -175,7 +176,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
       {/* Click outside backdrop for color picker popovers */}
       {openColorPickerIndex !== null && (
         <div
@@ -184,15 +185,20 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
         />
       )}
 
+      {/* Top right theme toggle */}
+      <div className="fixed top-4 right-4 z-40">
+        <ThemeToggle />
+      </div>
+
       {/* Dev Environment Banner */}
       {environment?.isDev && (
         <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-2xl">
-          <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+          <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold">
             <div className="flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-amber-400" />
+              <Wrench className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <span>DEVELOPMENT / TEST ENVIRONMENT</span>
             </div>
-            <span className="font-mono text-[11px] text-amber-400/80">
+            <span className="font-mono text-[11px] text-amber-700/80 dark:text-amber-400/80">
               DB: {environment.dbFileName}
             </span>
           </div>
@@ -204,19 +210,19 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">FiveFold</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">FiveFold</h1>
         </div>
-        <p className="text-center text-slate-400 text-sm">
+        <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
           Pooled Kids&apos; Savings Account &amp; APY Interest Reconciliation Manager
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl transition-colors">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-4 rounded-xl bg-red-950/60 border border-red-800/80 flex items-center gap-3 text-red-200 text-sm">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+              <div className="p-4 rounded-xl bg-rose-50 dark:bg-red-950/60 border border-rose-200 dark:border-red-800/80 flex items-center gap-3 text-rose-700 dark:text-red-200 text-sm">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 dark:text-red-400" />
                 <span>{error}</span>
               </div>
             )}
@@ -224,21 +230,21 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             {/* Account Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Bank / Account Name
                 </label>
                 <input
                   type="text"
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                   placeholder="e.g. Wealthfront Cash Account"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                   Current Account APY (%)
                 </label>
                 <div className="relative">
@@ -248,26 +254,26 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                     min="0"
                     value={apy}
                     onChange={(e) => setApy(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-8"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-8"
                     placeholder="e.g. 5.00"
                     required
                   />
-                  <span className="absolute right-3 top-2.5 text-slate-500 text-sm font-medium">%</span>
+                  <span className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 text-sm font-medium">%</span>
                 </div>
               </div>
             </div>
 
             {/* Total Account Balance */}
-            <div className="bg-slate-900/80 border border-slate-700/60 rounded-xl p-4">
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60 rounded-xl p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                   Current Total Bank Account Balance
                 </label>
                 {parsedTotal > 0 && childrenData.length > 0 && (
                   <button
                     type="button"
                     onClick={handleSplitEvenly}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto cursor-pointer"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto cursor-pointer"
                   >
                     Split balance equally across all {childrenData.length}
                   </button>
@@ -281,7 +287,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   min="0"
                   value={totalBalance}
                   onChange={(e) => handleTotalBalanceChange(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-xl pl-8 pr-4 py-2.5 text-white font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl pl-8 pr-4 py-2.5 text-slate-900 dark:text-white font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="0.00"
                   required
                 />
@@ -289,20 +295,20 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             </div>
 
             {/* Mode Switch & Header */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-700/60">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700/60">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-slate-200">
+                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Children Sub-Accounts ({childrenData.length})
                 </h2>
               </div>
-              <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+              <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setMode('amount')}
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                     mode === 'amount'
                       ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
@@ -314,7 +320,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                     mode === 'percent'
                       ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <Percent className="w-3.5 h-3.5" />
@@ -332,14 +338,14 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 return (
                   <div
                     key={index}
-                    className="relative flex items-center gap-3 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl hover:border-slate-600 transition-colors"
+                    className="relative flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 p-3 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                   >
                     {/* Option A: Clickable Avatar Circle with Floating Swatch Popover */}
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setOpenColorPickerIndex(isPickerOpen ? null : index)}
-                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md transition-transform hover:scale-105 cursor-pointer ring-2 ring-white/10"
+                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md transition-transform hover:scale-105 cursor-pointer ring-2 ring-black/10 dark:ring-white/10"
                         style={{ backgroundColor: child.color }}
                         title="Click to change color"
                       >
@@ -348,8 +354,8 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
                       {/* Floating Popover Palette */}
                       {isPickerOpen && (
-                        <div className="absolute left-0 top-11 z-30 bg-slate-800 border border-slate-700 rounded-2xl p-3 shadow-2xl w-48 animate-in fade-in">
-                          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+                        <div className="absolute left-0 top-11 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 shadow-2xl w-48 animate-in fade-in">
+                          <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-2">
                             Select Child Color
                           </div>
                           <div className="grid grid-cols-4 gap-2">
@@ -380,7 +386,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                       type="text"
                       value={child.name}
                       onChange={(e) => handleChildChange(index, 'name', e.target.value)}
-                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder={`Child ${index + 1} Name`}
                       required
                     />
@@ -394,7 +400,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                           min="0"
                           value={child.amount}
                           onChange={(e) => handleChildChange(index, 'amount', e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-slate-900 dark:text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           placeholder="0.00"
                           required
                         />
@@ -408,7 +414,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                           max="100"
                           value={child.percent}
                           onChange={(e) => handleChildChange(index, 'percent', e.target.value)}
-                          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-slate-900 dark:text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           placeholder="0.0"
                           required
                         />
@@ -421,7 +427,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                       <button
                         type="button"
                         onClick={() => handleRemoveChild(index)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                         title="Remove Child"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -436,7 +442,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             <button
               type="button"
               onClick={handleAddChild}
-              className="w-full py-2.5 px-4 rounded-xl border border-dashed border-slate-700 hover:border-indigo-500/60 bg-slate-900/40 hover:bg-indigo-950/20 text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500/60 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add Another Child
@@ -446,22 +452,22 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             <div
               className={`p-4 rounded-xl border flex items-center justify-between text-sm transition-all ${
                 isBalanced
-                  ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300'
                   : parsedTotal > 0
-                  ? 'bg-amber-950/40 border-amber-800/60 text-amber-300'
-                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
+                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300'
+                  : 'bg-slate-100 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
               }`}
             >
               <div className="flex items-center gap-2.5">
                 {isBalanced ? (
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 ) : (
                   <AlertCircle
-                    className={`w-5 h-5 ${parsedTotal > 0 ? 'text-amber-400' : 'text-slate-400'}`}
+                    className={`w-5 h-5 ${parsedTotal > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}
                   />
                 )}
                 <div>
-                  <span className="font-semibold text-slate-200">
+                  <span className="font-semibold text-slate-900 dark:text-slate-200">
                     {isBalanced
                       ? 'Account Balanced'
                       : parsedTotal > 0
@@ -491,7 +497,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
               className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-white shadow-lg transition-all ${
                 canSubmit && !loading
                   ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/25 cursor-pointer'
-                  : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-60'
+                  : 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-60'
               }`}
             >
               {loading ? (

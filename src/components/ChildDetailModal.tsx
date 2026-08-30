@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, PlusCircle, MinusCircle, Sparkles, Calendar, DollarSign, User } from 'lucide-react';
+import { X, PlusCircle, MinusCircle, History, Sparkles } from 'lucide-react';
 import { Child, Transaction } from '@/lib/types';
 import { formatCurrency, formatDateDisplay } from '@/lib/formatters';
 
@@ -27,49 +27,36 @@ export function ChildDetailModal({
 
   useEffect(() => {
     if (isOpen && child) {
-      fetchChildTransactions(child.id);
+      setLoading(true);
+      fetch(`/api/transactions?childId=${child.id}`)
+        .then((res) => res.json())
+        .then((data) => setTransactions(data.transactions || []))
+        .catch((err) => console.error(err))
+        .finally(() => setLoading(false));
     }
   }, [isOpen, child]);
 
-  const fetchChildTransactions = async (childId: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/transactions?childId=${childId}`);
-      const data = await res.json();
-      if (res.ok) {
-        setTransactions(data.transactions || []);
-      }
-    } catch (err) {
-      console.error('Failed to load child transactions', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!isOpen || !child) return null;
 
-  // Compute lifetime metrics
-  let totalDeposited = 0;
-  let totalWithdrawn = 0;
-  let totalInterest = 0;
+  const totalInterestEarned = transactions
+    .filter((tx) => tx.type === 'INTEREST')
+    .reduce((sum, tx) => {
+      const split = tx.splits.find((s) => s.childId === child.id);
+      return sum + (split ? split.amount : 0);
+    }, 0);
 
-  transactions.forEach((tx) => {
-    const split = tx.splits.find((s) => s.childId === child.id);
-    if (!split) return;
-    if (tx.type === 'INITIAL' || tx.type === 'DEPOSIT') {
-      totalDeposited += split.amount;
-    } else if (tx.type === 'WITHDRAWAL') {
-      totalWithdrawn += Math.abs(split.amount);
-    } else if (tx.type === 'INTEREST') {
-      totalInterest += split.amount;
-    }
-  });
+  const totalDeposits = transactions
+    .filter((tx) => tx.type === 'DEPOSIT' || tx.type === 'INITIAL')
+    .reduce((sum, tx) => {
+      const split = tx.splits.find((s) => s.childId === child.id);
+      return sum + (split ? split.amount : 0);
+    }, 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-colors">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-800/40">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
           <div className="flex items-center gap-3">
             <div
               className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-white text-lg shadow-lg"
@@ -78,15 +65,18 @@ export function ChildDetailModal({
               {child.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">{child.name}&apos;s Account</h2>
-              <p className="text-xs text-slate-400">
-                {child.percentage}% of pooled savings account ({formatCurrency(totalAccountBalance)} total)
-              </p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{child.name}</h2>
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+                  {child.percentage}% of total
+                </span>
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Child Savings Sub-Account</span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -94,130 +84,109 @@ export function ChildDetailModal({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Main Balance Card */}
-          <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                 Current Balance
               </span>
-              <div className="text-3xl font-extrabold text-white font-mono">
+              <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">
                 {formatCurrency(child.balance || 0)}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onQuickDeposit(child.id);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-colors"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                Deposit
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onQuickWithdraw(child.id);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-colors"
-              >
-                <MinusCircle className="w-3.5 h-3.5" />
-                Withdraw
-              </button>
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1 mb-1">
+                <Sparkles className="w-3.5 h-3.5" /> Total Interest
+              </span>
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400 font-mono">
+                +{formatCurrency(totalInterestEarned)}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mb-1">
+                <PlusCircle className="w-3.5 h-3.5" /> Contributions
+              </span>
+              <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                {formatCurrency(totalDeposits)}
+              </div>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-slate-800/50 border border-slate-700/50 p-3 rounded-xl">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-0.5">
-                Lifetime Deposits
-              </span>
-              <span className="text-sm font-bold text-emerald-400 font-mono">
-                {formatCurrency(totalDeposited)}
-              </span>
-            </div>
-            <div className="bg-slate-800/50 border border-slate-700/50 p-3 rounded-xl">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-0.5">
-                Lifetime Interest
-              </span>
-              <span className="text-sm font-bold text-amber-400 font-mono">
-                +{formatCurrency(totalInterest)}
-              </span>
-            </div>
-            <div className="bg-slate-800/50 border border-slate-700/50 p-3 rounded-xl">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-0.5">
-                Lifetime Withdrawals
-              </span>
-              <span className="text-sm font-bold text-rose-400 font-mono">
-                -{formatCurrency(totalWithdrawn)}
-              </span>
-            </div>
+          {/* Quick Actions */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onQuickDeposit(child.id);
+              }}
+              className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Deposit for {child.name}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onQuickWithdraw(child.id);
+              }}
+              className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-md shadow-rose-600/20 transition-all cursor-pointer"
+            >
+              <MinusCircle className="w-4 h-4" />
+              Withdraw for {child.name}
+            </button>
           </div>
 
           {/* Transaction History for this child */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Transaction History
+          <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <History className="w-3.5 h-3.5" /> {child.name}&apos;s Ledger History
             </h3>
 
             {loading ? (
-              <div className="py-8 text-center text-slate-400 text-sm">Loading activity...</div>
+              <div className="py-6 text-center text-slate-500 dark:text-slate-400 text-xs">Loading activity...</div>
             ) : transactions.length === 0 ? (
-              <div className="py-8 text-center text-slate-500 text-sm">No transactions yet</div>
+              <div className="py-6 text-center text-slate-400 dark:text-slate-500 text-xs">
+                No activity recorded yet for {child.name}.
+              </div>
             ) : (
-              <div className="border border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-800/80">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
                 {transactions.map((tx) => {
                   const split = tx.splits.find((s) => s.childId === child.id);
-                  if (!split) return null;
-                  const isPositive = split.amount >= 0;
+                  const amount = split ? split.amount : 0;
+                  const isPositive = amount >= 0;
 
                   return (
                     <div
                       key={tx.id}
-                      className="p-3.5 flex items-center justify-between hover:bg-slate-800/40 transition-colors"
+                      className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            tx.type === 'INTEREST'
-                              ? 'bg-amber-500/20 text-amber-400'
-                              : isPositive
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-rose-500/20 text-rose-400'
-                          }`}
-                        >
-                          {tx.type === 'INTEREST' ? (
-                            <Sparkles className="w-4 h-4" />
-                          ) : isPositive ? (
-                            <PlusCircle className="w-4 h-4" />
-                          ) : (
-                            <MinusCircle className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-white">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white">
                             {tx.description || tx.type}
-                          </div>
-                          <div className="text-xs text-slate-400">{formatDateDisplay(tx.date)}</div>
+                          </span>
+                          <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {tx.type}
+                          </span>
                         </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">{formatDateDisplay(tx.date)}</span>
                       </div>
 
                       <div
                         className={`text-sm font-bold font-mono ${
                           tx.type === 'INTEREST'
-                            ? 'text-amber-400'
+                            ? 'text-amber-600 dark:text-amber-400'
                             : isPositive
-                            ? 'text-emerald-400'
-                            : 'text-rose-400'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {isPositive ? '+' : ''}
-                        {formatCurrency(split.amount)}
+                        {formatCurrency(amount)}
                       </div>
                     </div>
                   );
@@ -225,17 +194,6 @@ export function ChildDetailModal({
               </div>
             )}
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-800/40 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Transaction, Child } from '@/lib/types';
 import { formatCurrency, formatDateDisplay } from '@/lib/formatters';
-import { PlusCircle, MinusCircle, Sparkles, Trash2, Filter, DollarSign, Layers } from 'lucide-react';
+import { PlusCircle, MinusCircle, Sparkles, Trash2, Filter, Layers } from 'lucide-react';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -43,15 +43,15 @@ export function TransactionList({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 transition-colors">
       {/* Header & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <Layers className="w-4 h-4 text-indigo-400" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Layers className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
             Transaction Ledger
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {filtered.length} {filtered.length === 1 ? 'transaction' : 'transactions'} recorded
           </p>
         </div>
@@ -59,20 +59,20 @@ export function TransactionList({
         {/* Filter controls */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {/* Child filter */}
-          <div className="flex items-center gap-1 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={filterChildId}
               onChange={(e) =>
                 setFilterChildId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))
               }
-              className="bg-transparent text-slate-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900 text-slate-200">
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 All Children
               </option>
               {childrenList.map((c) => (
-                <option key={c.id} value={c.id} className="bg-slate-900 text-slate-200">
+                <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                   {c.name}
                 </option>
               ))}
@@ -80,25 +80,25 @@ export function TransactionList({
           </div>
 
           {/* Type filter */}
-          <div className="flex items-center gap-1 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl px-2.5 py-1.5">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="bg-transparent text-slate-200 focus:outline-none cursor-pointer"
+              className="bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900 text-slate-200">
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 All Types
               </option>
-              <option value="DEPOSIT" className="bg-slate-900 text-slate-200">
+              <option value="DEPOSIT" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 Deposits
               </option>
-              <option value="WITHDRAWAL" className="bg-slate-900 text-slate-200">
+              <option value="WITHDRAWAL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 Withdrawals
               </option>
-              <option value="INTEREST" className="bg-slate-900 text-slate-200">
+              <option value="INTEREST" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 Monthly Interest
               </option>
-              <option value="INITIAL" className="bg-slate-900 text-slate-200">
+              <option value="INITIAL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200">
                 Initial Setup
               </option>
             </select>
@@ -108,11 +108,11 @@ export function TransactionList({
 
       {/* Transaction List */}
       {filtered.length === 0 ? (
-        <div className="py-12 text-center text-slate-500 text-sm">
+        <div className="py-12 text-center text-slate-400 dark:text-slate-500 text-sm">
           No transactions match your current filters.
         </div>
       ) : (
-        <div className="divide-y divide-slate-800/80">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
           {filtered.map((tx) => {
             const isInterest = tx.type === 'INTEREST';
             const isDeposit = tx.type === 'DEPOSIT' || tx.type === 'INITIAL';
@@ -121,17 +121,17 @@ export function TransactionList({
             return (
               <div
                 key={tx.id}
-                className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-800/30 px-2 rounded-xl transition-colors group"
+                className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 px-2 rounded-xl transition-colors group"
               >
                 {/* Left: icon & details */}
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
                       isInterest
-                        ? 'bg-amber-500/20 text-amber-400'
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                         : isDeposit
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
                     }`}
                   >
                     {isInterest ? (
@@ -145,23 +145,23 @@ export function TransactionList({
 
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">
                         {tx.description || tx.type}
                       </span>
                       <span
                         className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
                           isInterest
-                            ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60'
                             : isDeposit
-                            ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
-                            : 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60'
+                            : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/60'
                         }`}
                       >
                         {tx.type}
                       </span>
                     </div>
 
-                    <span className="text-xs text-slate-400 block mb-1.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 block mb-1.5">
                       {formatDateDisplay(tx.date)}
                     </span>
 
@@ -172,7 +172,7 @@ export function TransactionList({
                           key={s.id || s.childId}
                           type="button"
                           onClick={() => onSelectChild(s.childId)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-200 transition-colors"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-[11px] text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
                         >
                           <span
                             className="w-2 h-2 rounded-full"
@@ -181,7 +181,7 @@ export function TransactionList({
                           <span>{s.childName}:</span>
                           <span
                             className={`font-mono font-medium ${
-                              s.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                              s.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                             }`}
                           >
                             {s.amount >= 0 ? '+' : ''}
@@ -198,10 +198,10 @@ export function TransactionList({
                   <span
                     className={`text-base font-bold font-mono ${
                       isInterest
-                        ? 'text-amber-400'
+                        ? 'text-amber-600 dark:text-amber-400'
                         : isDeposit
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
                     }`}
                   >
                     {isDeposit ? '+' : isWithdrawal ? '-' : '+'}
@@ -214,7 +214,7 @@ export function TransactionList({
                       onClick={() => handleDelete(tx.id)}
                       disabled={deletingId === tx.id}
                       title="Delete Transaction"
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-all cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

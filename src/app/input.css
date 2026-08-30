@@ -3,11 +3,17 @@
 @tailwind utilities;
 
 :root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+.dark {
   --background: #020617;
   --foreground: #f8fafc;
 }
 
 body {
-  background-color: #020617;
-  color: #f8fafc;
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
