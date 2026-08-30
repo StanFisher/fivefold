@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tailwindcss -i src/app/input.css -o src/app/globals.css && next dev",
+    "dev": "FIVEFOLD_ENV=development tailwindcss -i src/app/input.css -o src/app/globals.css && FIVEFOLD_ENV=development next dev",
+    "dev:reset": "FIVEFOLD_ENV=development tsx scripts/reset-db.ts",
     "build": "tailwindcss -i src/app/input.css -o src/app/globals.css --minify && next build",
-    "start": "next start",
-    "test": "tsx src/lib/__tests__/interest.test.ts && tsx src/lib/__tests__/db.test.ts",
+    "prod:start": "npm run build && FIVEFOLD_ENV=production next start",
+    "prod:backup": "tsx scripts/backup-db.ts",
+    "start": "FIVEFOLD_ENV=production next start",
+    "test": "FIVEFOLD_ENV=test tsx src/lib/__tests__/interest.test.ts && FIVEFOLD_ENV=test tsx src/lib/__tests__/db.test.ts",
     "lint": "eslint"
   },
   "dependencies": {

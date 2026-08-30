@@ -1,11 +1,27 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { AccountSettings, Child, MonthInterestPreview, Transaction, TransactionSplit } from './types';
+import { AccountSettings, Child, EnvironmentInfo, MonthInterestPreview, Transaction, TransactionSplit } from './types';
 import { calculateMonthlyInterest } from './interest';
 
 const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'fivefold.db');
+
+// Determine database file based on environment
+export function getEnvironmentInfo(): EnvironmentInfo {
+  const env = process.env.FIVEFOLD_ENV || process.env.NODE_ENV || 'development';
+  if (env === 'test') {
+    return { name: 'test', isDev: true, dbFileName: 'fivefold.test.db' };
+  }
+  if (env === 'production') {
+    return { name: 'production', isDev: false, dbFileName: 'fivefold.db' };
+  }
+  return { name: 'development', isDev: true, dbFileName: 'fivefold.dev.db' };
+}
+
+export function getDbPath(): string {
+  const info = getEnvironmentInfo();
+  return path.join(DB_DIR, info.dbFileName);
+}
 
 // Ensure data directory exists
 if (!fs.existsSync(DB_DIR)) {
@@ -13,12 +29,20 @@ if (!fs.existsSync(DB_DIR)) {
 }
 
 let dbInstance: Database.Database | null = null;
+let currentDbPath: string | null = null;
 
 export function getDb(): Database.Database {
-  if (!dbInstance) {
-    dbInstance = new Database(DB_PATH);
+  const expectedPath = getDbPath();
+  if (!dbInstance || currentDbPath !== expectedPath) {
+    if (dbInstance) {
+      try {
+        dbInstance.close();
+      } catch (e) {}
+    }
+    dbInstance = new Database(expectedPath);
     dbInstance.pragma('journal_mode = WAL');
     dbInstance.pragma('foreign_keys = ON');
+    currentDbPath = expectedPath;
     initSchema(dbInstance);
   }
   return dbInstance;
@@ -66,6 +90,27 @@ function initSchema(db: Database.Database) {
       created_at TEXT NOT NULL
     );
   `);
+}
+
+// ----------------------------------------------------
+// BACKUP UTILITY
+// ----------------------------------------------------
+
+export function backupDatabase(): string {
+  const db = getDb();
+  const backupsDir = path.join(DB_DIR, 'backups');
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-');
+  const envInfo = getEnvironmentInfo();
+  const backupFileName = `${envInfo.name}-${timestamp}.db`;
+  const backupFilePath = path.join(backupsDir, backupFileName);
+
+  db.backup(backupFilePath);
+  return backupFilePath;
 }
 
 // ----------------------------------------------------
@@ -190,7 +235,6 @@ export function getTransactions(options?: { childId?: number; limit?: number }):
 
   if (txRows.length === 0) return [];
 
-  // Fetch splits for these transactions
   const txIds = txRows.map((tx) => tx.id);
   const placeholders = txIds.map(() => '?').join(',');
   const splitsQuery = `
@@ -294,13 +338,11 @@ export function completeOnboarding(data: {
   const now = new Date().toISOString();
 
   const run = db.transaction(() => {
-    // Clear existing data
     db.prepare('DELETE FROM transaction_splits').run();
     db.prepare('DELETE FROM transactions').run();
     db.prepare('DELETE FROM children').run();
     db.prepare('DELETE FROM reconciliations').run();
 
-    // Insert settings
     updateSettings({
       apy: data.apy,
       accountName: data.accountName,
@@ -309,7 +351,6 @@ export function completeOnboarding(data: {
       lastReconciledBalance: data.children.reduce((s, c) => s + c.initialAmount, 0),
     });
 
-    // Insert children
     const insertChild = db.prepare(`
       INSERT INTO children (name, color, sort_order, created_at)
       VALUES (?, ?, ?, ?)
@@ -324,7 +365,6 @@ export function completeOnboarding(data: {
       });
     });
 
-    // Create Initial Balances Transaction
     const totalAmount = data.children.reduce((s, c) => s + c.initialAmount, 0);
     const insertTx = db.prepare(`
       INSERT INTO transactions (date, type, total_amount, description, created_at)
@@ -367,7 +407,6 @@ export function postMonthlyInterest(year: number, month: number, customAmount?: 
   const lastDay = new Date(year, month, 0).getDate();
   const postingDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-  // If customAmount is provided (e.g. true-up bank penny difference), recalculate splits
   let splits = preview.childAllocations.map((c) => ({
     childId: c.childId,
     amount: c.calculatedInterest,

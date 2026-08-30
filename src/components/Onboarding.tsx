@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench } from 'lucide-react';
 import { formatCurrency, PRESET_COLORS } from '@/lib/formatters';
+import { EnvironmentInfo } from '@/lib/types';
 
 interface OnboardingProps {
   onComplete: () => void;
+  environment?: EnvironmentInfo;
 }
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const [apy, setApy] = useState<string>('5.00');
   const [accountName, setAccountName] = useState<string>('Wealthfront Cash Account');
   const [totalBalance, setTotalBalance] = useState<string>('10000.00');
@@ -26,7 +28,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const parsedTotal = parseFloat(totalBalance) || 0;
 
-  // Calculate current allocated sum based on mode
   const currentAllocated = childrenData.reduce((sum, c) => {
     if (mode === 'amount') {
       return sum + (parseFloat(c.amount) || 0);
@@ -40,7 +41,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const remaining = Number((parsedTotal - roundedAllocated).toFixed(2));
   const isBalanced = Math.abs(remaining) < 0.01 && parsedTotal > 0;
 
-  // Split evenly helper
   const handleSplitEvenly = () => {
     if (parsedTotal <= 0) return;
     const basePerKid = Math.floor((parsedTotal / 5) * 100) / 100;
@@ -100,7 +100,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         children: childrenData.map((c) => ({
           name: c.name.trim() || 'Child',
           color: c.color,
-          initialAmount: mode === 'amount' ? parseFloat(c.amount) || 0 : Number(((parsedTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2)),
+          initialAmount:
+            mode === 'amount'
+              ? parseFloat(c.amount) || 0
+              : Number(((parsedTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2)),
         })),
       };
 
@@ -123,6 +126,21 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Dev Environment Banner */}
+      {environment?.isDev && (
+        <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-2xl">
+          <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-amber-400" />
+              <span>DEVELOPMENT / TEST ENVIRONMENT</span>
+            </div>
+            <span className="font-mono text-[11px] text-amber-400/80">
+              DB: {environment.dbFileName}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="flex justify-center items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
@@ -135,7 +153,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-2xl">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-2xl">
         <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
@@ -248,7 +266,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   key={index}
                   className="flex items-center gap-3 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl hover:border-slate-600 transition-colors"
                 >
-                  {/* Color circle */}
                   <div className="relative group">
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow"
@@ -258,7 +275,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     </div>
                   </div>
 
-                  {/* Name */}
                   <input
                     type="text"
                     value={child.name}
@@ -268,7 +284,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     required
                   />
 
-                  {/* Amount / Percent Input */}
                   {mode === 'amount' ? (
                     <div className="relative w-36">
                       <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs">$</span>

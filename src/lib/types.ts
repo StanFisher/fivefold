@@ -38,6 +38,12 @@ export interface AccountSettings {
   lastReconciledBalance?: number | null;
 }
 
+export interface EnvironmentInfo {
+  name: 'development' | 'production' | 'test';
+  isDev: boolean;
+  dbFileName: string;
+}
+
 export interface MonthInterestPreview {
   monthPeriod: string; // YYYY-MM
   monthName: string;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Onboarding } from '@/components/Onboarding';
 import { Dashboard } from '@/components/Dashboard';
-import { AccountSettings, Child, MonthInterestPreview, Transaction } from '@/lib/types';
+import { AccountSettings, Child, EnvironmentInfo, MonthInterestPreview, Transaction } from '@/lib/types';
 import { Sparkles } from 'lucide-react';
 
 export default function Home() {
@@ -15,11 +15,14 @@ export default function Home() {
   const [interestPreview, setInterestPreview] = useState<MonthInterestPreview | null>(null);
   const [reconciliations, setReconciliations] = useState<any[]>([]);
   const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [environment, setEnvironment] = useState<EnvironmentInfo | undefined>(undefined);
 
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/data', { cache: 'no-store' });
       const data = await res.json();
+
+      setEnvironment(data.environment);
 
       if (data.isOnboarded) {
         setIsOnboarded(true);
@@ -65,7 +68,7 @@ export default function Home() {
   }
 
   if (!isOnboarded || !settings) {
-    return <Onboarding onComplete={fetchData} />;
+    return <Onboarding onComplete={fetchData} environment={environment} />;
   }
 
   return (
@@ -76,6 +79,7 @@ export default function Home() {
       interestPreview={interestPreview}
       reconciliations={reconciliations}
       totalBalance={totalBalance}
+      environment={environment}
       onRefresh={fetchData}
       onResetDatabase={handleResetDatabase}
     />

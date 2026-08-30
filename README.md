@@ -6,45 +6,50 @@ It tracks individual sub-balances for 5 children in a single pooled savings acco
 
 ---
 
-## Key Features
+## Environments: Dev vs. Prod
 
-1. **Automated Wealthfront Daily APY Accrual**:
-   - Accrues interest daily on each child's exact balance over the month at your configured APY.
-   - Allocates monthly bank interest down to the penny using the **Largest Remainder (Hamilton-Hare) algorithm**, guaranteeing zero rounding drift.
-   - Includes a 1-click **Post Monthly Interest** action with a true-up adjustment field if the bank statement differs by a cent.
+FiveFold includes complete environment and database isolation so you can test updates and experiment with interest calculations safely without touching your real production family savings data.
 
-2. **Streamlined Deposits & Withdrawals**:
-   - Allocate deposits or withdrawals to a single child or split equally/custom across all 5 children.
-   - Instant balance updates and transaction history.
-
-3. **Bank Statement Reconciliation**:
-   - Compare the sum of your 5 children's balances against your actual Wealthfront account balance anytime.
-   - Immediate visual feedback on exact matches or discrepancies.
-
-4. **Guided Onboarding**:
-   - Input your account APY, current total account balance, 5 kids' names, and starting amounts (or percentage shares).
-
-5. **100% Local & Private**:
-   - Stored in a local SQLite database (`data/fivefold.db`) on your computer.
+| Environment | Database File | Command | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Development** | `data/fivefold.dev.db` | `npm run dev` | Testing, experimenting, UI validation, test database wipes |
+| **Production** | `data/fivefold.db` | `npm run prod:start` | Real family savings account management |
+| **Testing** | `data/fivefold.test.db` | `npm test` | Automated unit and workflow test runs |
 
 ---
 
-## Quick Start
+## Quick Start & Commands
 
-### 1. Install Dependencies & Build
+### Development (Safe Testing)
 ```bash
-npm install
-npm run build
-```
-
-### 2. Run the Development Server
-```bash
+# Start development server with dev database
 npm run dev
+
+# Reset dev database back to fresh setup
+npm run dev:reset
+```
+*When running in development, an amber **DEV ENVIRONMENT** banner is displayed in the header with a 1-click test database reset tool.*
+
+---
+
+### Production
+```bash
+# Build and run production server
+npm run prod:start
+
+# Create a timestamped backup of the database before major updates
+npm run prod:backup
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+---
 
-### 3. Run Automated Tests
+### Automated Tests
 ```bash
 npm test
 ```
+
+---
+
+## Git Workflow
+- `dev` branch: Working branch for testing new features and updates.
+- `main` branch: Stable production branch. Only push to `main` when updates are tested and approved.

@@ -15,8 +15,10 @@ import {
   User,
   Calendar,
   Percent,
+  Wrench,
+  RotateCcw,
 } from 'lucide-react';
-import { Child, Transaction, AccountSettings, MonthInterestPreview } from '@/lib/types';
+import { Child, Transaction, AccountSettings, MonthInterestPreview, EnvironmentInfo } from '@/lib/types';
 import { formatCurrency, formatDateDisplay } from '@/lib/formatters';
 import { TransactionModal } from './TransactionModal';
 import { InterestModal } from './InterestModal';
@@ -32,6 +34,7 @@ interface DashboardProps {
   interestPreview: MonthInterestPreview | null;
   reconciliations: any[];
   totalBalance: number;
+  environment?: EnvironmentInfo;
   onRefresh: () => void;
   onResetDatabase: () => void;
 }
@@ -43,6 +46,7 @@ export function Dashboard({
   interestPreview,
   reconciliations,
   totalBalance,
+  environment,
   onRefresh,
   onResetDatabase,
 }: DashboardProps) {
@@ -57,7 +61,6 @@ export function Dashboard({
 
   const [activeChildDetail, setActiveChildDetail] = useState<Child | null>(null);
 
-  // Quick actions
   const handleQuickDeposit = (childId?: number) => {
     setTransactionType('DEPOSIT');
     setSelectedChildForTx(childId || null);
@@ -86,11 +89,33 @@ export function Dashboard({
     settings.lastReconciledBalance !== undefined &&
     Math.abs(totalBalance - settings.lastReconciledBalance) < 0.01;
 
-  // Monthly estimated interest
   const monthlyEst = (totalBalance * (settings.apy / 100)) / 12;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-16">
+      {/* Dev Mode Banner */}
+      {environment?.isDev && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-xs font-semibold text-amber-300 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-3.5 h-3.5 text-amber-400" />
+              <span>DEVELOPMENT / TEST ENVIRONMENT &mdash; Isolated test database active ({environment.dbFileName})</span>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm('Reset the development test database back to fresh onboarding?')) {
+                  onResetDatabase();
+                }
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset Dev DB
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -102,9 +127,15 @@ export function Dashboard({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold tracking-tight text-white">FiveFold</span>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  HYSA
-                </span>
+                {environment?.isDev ? (
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    DEV
+                  </span>
+                ) : (
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    PROD
+                  </span>
+                )}
               </div>
               <span className="text-xs text-slate-400 block -mt-0.5">
                 {settings.accountName}
@@ -268,7 +299,6 @@ export function Dashboard({
                 key={child.id}
                 className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4 transition-all hover:shadow-indigo-500/5 group"
               >
-                {/* Top: Avatar & Name */}
                 <div
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setActiveChildDetail(child)}
@@ -289,7 +319,6 @@ export function Dashboard({
                   </div>
                 </div>
 
-                {/* Balance display */}
                 <div
                   className="cursor-pointer"
                   onClick={() => setActiveChildDetail(child)}
@@ -302,7 +331,6 @@ export function Dashboard({
                   </div>
                 </div>
 
-                {/* Progress bar */}
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
@@ -313,7 +341,6 @@ export function Dashboard({
                   />
                 </div>
 
-                {/* Quick actions for this child */}
                 <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
                   <button
                     type="button"

@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getSettings, getChildren, getTransactions, getMonthInterestPreview, getReconciliations } from '@/lib/db';
+import { getSettings, getChildren, getTransactions, getMonthInterestPreview, getReconciliations, getEnvironmentInfo } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const environment = getEnvironmentInfo();
     const settings = getSettings();
+
     if (!settings.isOnboarded) {
       return NextResponse.json({
         isOnboarded: false,
         settings,
+        environment,
       });
     }
 
@@ -18,7 +21,6 @@ export async function GET() {
     const reconciliations = getReconciliations();
 
     const now = new Date();
-    // Default to current month or previous month if on the 1st
     let targetYear = now.getFullYear();
     let targetMonth = now.getMonth() + 1;
 
@@ -35,6 +37,7 @@ export async function GET() {
       interestPreview,
       reconciliations,
       totalBalance,
+      environment,
     });
   } catch (error: any) {
     console.error('Error fetching data:', error);
