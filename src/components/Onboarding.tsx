@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2 } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2, Check } from 'lucide-react';
 import { formatCurrency, PRESET_COLORS } from '@/lib/formatters';
 import { EnvironmentInfo } from '@/lib/types';
 
@@ -17,6 +17,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const [mode, setMode] = useState<'amount' | 'percent'>('amount');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
 
   // Start with 1 blank placeholder for the first child
   const [childrenData, setChildrenData] = useState([
@@ -41,7 +42,6 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const allNamesEntered = childrenData.length > 0 && childrenData.every((c) => c.name.trim().length > 0);
   const canSubmit = isBalanced && allNamesEntered && parsedApy > 0 && accountName.trim().length > 0;
 
-  // Add another child
   const handleAddChild = () => {
     const nextColorIndex = childrenData.length % PRESET_COLORS.length;
     setChildrenData([
@@ -55,14 +55,13 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
     ]);
   };
 
-  // Remove child
   const handleRemoveChild = (indexToRemove: number) => {
     if (childrenData.length <= 1) return;
+    if (openColorPickerIndex === indexToRemove) setOpenColorPickerIndex(null);
     const updated = childrenData.filter((_, idx) => idx !== indexToRemove);
     setChildrenData(updated);
   };
 
-  // Split balance equally across all active children
   const handleSplitEvenly = () => {
     if (parsedTotal <= 0 || childrenData.length === 0) return;
     const count = childrenData.length;
@@ -177,6 +176,14 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      {/* Click outside backdrop for color picker popovers */}
+      {openColorPickerIndex !== null && (
+        <div
+          className="fixed inset-0 z-20 cursor-default"
+          onClick={() => setOpenColorPickerIndex(null)}
+        />
+      )}
+
       {/* Dev Environment Banner */}
       {environment?.isDev && (
         <div className="mb-4 sm:mx-auto sm:w-full sm:max-w-2xl">
@@ -260,7 +267,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   <button
                     type="button"
                     onClick={handleSplitEvenly}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto cursor-pointer"
                   >
                     Split balance equally across all {childrenData.length}
                   </button>
@@ -292,7 +299,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 <button
                   type="button"
                   onClick={() => setMode('amount')}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                     mode === 'amount'
                       ? 'bg-indigo-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
@@ -304,7 +311,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 <button
                   type="button"
                   onClick={() => setMode('percent')}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                     mode === 'percent'
                       ? 'bg-indigo-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
@@ -318,79 +325,111 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
             {/* Children Inputs */}
             <div className="space-y-3">
-              {childrenData.map((child, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl hover:border-slate-600 transition-colors"
-                >
-                  {/* Color / index swatch */}
-                  <select
-                    value={child.color}
-                    onChange={(e) => handleChildChange(index, 'color', e.target.value)}
-                    className="w-8 h-8 rounded-full text-xs font-bold text-white text-center cursor-pointer border border-slate-600 focus:outline-none shadow"
-                    style={{ backgroundColor: child.color }}
-                    title="Change color"
+              {childrenData.map((child, index) => {
+                const initialLetter = child.name.trim().charAt(0).toUpperCase() || `${index + 1}`;
+                const isPickerOpen = openColorPickerIndex === index;
+
+                return (
+                  <div
+                    key={index}
+                    className="relative flex items-center gap-3 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl hover:border-slate-600 transition-colors"
                   >
-                    {PRESET_COLORS.map((pc) => (
-                      <option key={pc.hex} value={pc.hex} className="bg-slate-900 text-white">
-                        {pc.name}
-                      </option>
-                    ))}
-                  </select>
+                    {/* Option A: Clickable Avatar Circle with Floating Swatch Popover */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenColorPickerIndex(isPickerOpen ? null : index)}
+                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md transition-transform hover:scale-105 cursor-pointer ring-2 ring-white/10"
+                        style={{ backgroundColor: child.color }}
+                        title="Click to change color"
+                      >
+                        {initialLetter}
+                      </button>
 
-                  <input
-                    type="text"
-                    value={child.name}
-                    onChange={(e) => handleChildChange(index, 'name', e.target.value)}
-                    className="flex-1 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder={`Child ${index + 1} Name`}
-                    required
-                  />
-
-                  {mode === 'amount' ? (
-                    <div className="relative w-36">
-                      <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs">$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={child.amount}
-                        onChange={(e) => handleChildChange(index, 'amount', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="0.00"
-                        required
-                      />
+                      {/* Floating Popover Palette */}
+                      {isPickerOpen && (
+                        <div className="absolute left-0 top-11 z-30 bg-slate-800 border border-slate-700 rounded-2xl p-3 shadow-2xl w-48 animate-in fade-in">
+                          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+                            Select Child Color
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {PRESET_COLORS.map((pc) => {
+                              const isSelected = child.color.toLowerCase() === pc.hex.toLowerCase();
+                              return (
+                                <button
+                                  key={pc.hex}
+                                  type="button"
+                                  onClick={() => {
+                                    handleChildChange(index, 'color', pc.hex);
+                                    setOpenColorPickerIndex(null);
+                                  }}
+                                  className="w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow relative"
+                                  style={{ backgroundColor: pc.hex }}
+                                  title={pc.name}
+                                >
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="relative w-36">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                        value={child.percent}
-                        onChange={(e) => handleChildChange(index, 'percent', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="0.0"
-                        required
-                      />
-                      <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
-                    </div>
-                  )}
 
-                  {/* Remove Child Button (visible when > 1 child) */}
-                  {childrenData.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveChild(index)}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                      title="Remove Child"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                    <input
+                      type="text"
+                      value={child.name}
+                      onChange={(e) => handleChildChange(index, 'name', e.target.value)}
+                      className="flex-1 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder={`Child ${index + 1} Name`}
+                      required
+                    />
+
+                    {mode === 'amount' ? (
+                      <div className="relative w-36">
+                        <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={child.amount}
+                          onChange={(e) => handleChildChange(index, 'amount', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative w-36">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={child.percent}
+                          onChange={(e) => handleChildChange(index, 'percent', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder="0.0"
+                          required
+                        />
+                        <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
+                      </div>
+                    )}
+
+                    {/* Remove Child Button (visible when > 1 child) */}
+                    {childrenData.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveChild(index)}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                        title="Remove Child"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Add Another Child Button */}

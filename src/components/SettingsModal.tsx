@@ -31,6 +31,7 @@ export function SettingsModal({
   const [error, setError] = useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
 
   if (!isOpen) return null;
 
@@ -74,7 +75,13 @@ export function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      {openColorPickerIndex !== null && (
+        <div
+          className="fixed inset-0 z-20 cursor-default"
+          onClick={() => setOpenColorPickerIndex(null)}
+        />
+      )}
+      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-30">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-800/40">
           <div className="flex items-center gap-2.5">
@@ -149,35 +156,68 @@ export function SettingsModal({
             </h3>
 
             <div className="space-y-2">
-              {childrenData.map((child, index) => (
-                <div
-                  key={child.id}
-                  className="flex items-center gap-3 bg-slate-800/60 border border-slate-700/60 p-2.5 rounded-xl"
-                >
-                  {/* Color selector dropdown */}
-                  <select
-                    value={child.color}
-                    onChange={(e) => handleChildChange(index, 'color', e.target.value)}
-                    className="bg-slate-900 border border-slate-700 text-xs rounded-lg p-1 text-white focus:outline-none"
-                    style={{ borderLeftColor: child.color, borderLeftWidth: '4px' }}
-                  >
-                    {PRESET_COLORS.map((pc) => (
-                      <option key={pc.hex} value={pc.hex}>
-                        {pc.name}
-                      </option>
-                    ))}
-                  </select>
+              {childrenData.map((child, index) => {
+                const initialLetter = child.name.trim().charAt(0).toUpperCase() || `${index + 1}`;
+                const isPickerOpen = openColorPickerIndex === index;
 
-                  <input
-                    type="text"
-                    value={child.name}
-                    onChange={(e) => handleChildChange(index, 'name', e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="Child Name"
-                    required
-                  />
-                </div>
-              ))}
+                return (
+                  <div
+                    key={child.id}
+                    className="relative flex items-center gap-3 bg-slate-800/60 border border-slate-700/60 p-2.5 rounded-xl"
+                  >
+                    {/* Option A Avatar Button */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setOpenColorPickerIndex(isPickerOpen ? null : index)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow transition-transform hover:scale-105 cursor-pointer ring-2 ring-white/10"
+                        style={{ backgroundColor: child.color }}
+                        title="Click to change color"
+                      >
+                        {initialLetter}
+                      </button>
+
+                      {/* Popover */}
+                      {isPickerOpen && (
+                        <div className="absolute left-0 top-10 z-30 bg-slate-800 border border-slate-700 rounded-2xl p-2.5 shadow-2xl w-44 animate-in fade-in">
+                          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+                            Select Color
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {PRESET_COLORS.map((pc) => {
+                              const isSelected = child.color.toLowerCase() === pc.hex.toLowerCase();
+                              return (
+                                <button
+                                  key={pc.hex}
+                                  type="button"
+                                  onClick={() => {
+                                    handleChildChange(index, 'color', pc.hex);
+                                    setOpenColorPickerIndex(null);
+                                  }}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer shadow relative"
+                                  style={{ backgroundColor: pc.hex }}
+                                  title={pc.name}
+                                >
+                                  {isSelected && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      value={child.name}
+                      onChange={(e) => handleChildChange(index, 'name', e.target.value)}
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      placeholder="Child Name"
+                      required
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
