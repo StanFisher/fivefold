@@ -258,7 +258,7 @@ export function TransactionModal({
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Split All 5 Evenly
+                Split All ({childrenList.length}) Evenly
               </button>
               <button
                 type="button"

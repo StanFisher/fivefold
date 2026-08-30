@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench } from 'lucide-react';
+import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency, PRESET_COLORS } from '@/lib/formatters';
 import { EnvironmentInfo } from '@/lib/types';
 
@@ -18,12 +18,9 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Start with 1 blank placeholder for the first child
   const [childrenData, setChildrenData] = useState([
     { name: '', color: PRESET_COLORS[0].hex, amount: '', percent: '' },
-    { name: '', color: PRESET_COLORS[1].hex, amount: '', percent: '' },
-    { name: '', color: PRESET_COLORS[2].hex, amount: '', percent: '' },
-    { name: '', color: PRESET_COLORS[3].hex, amount: '', percent: '' },
-    { name: '', color: PRESET_COLORS[4].hex, amount: '', percent: '' },
   ]);
 
   const parsedTotal = parseFloat(totalBalance) || 0;
@@ -41,13 +38,36 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const roundedAllocated = Number(currentAllocated.toFixed(2));
   const remaining = Number((parsedTotal - roundedAllocated).toFixed(2));
   const isBalanced = Math.abs(remaining) < 0.01 && parsedTotal > 0;
-  const allNamesEntered = childrenData.every((c) => c.name.trim().length > 0);
+  const allNamesEntered = childrenData.length > 0 && childrenData.every((c) => c.name.trim().length > 0);
   const canSubmit = isBalanced && allNamesEntered && parsedApy > 0 && accountName.trim().length > 0;
 
+  // Add another child
+  const handleAddChild = () => {
+    const nextColorIndex = childrenData.length % PRESET_COLORS.length;
+    setChildrenData([
+      ...childrenData,
+      {
+        name: '',
+        color: PRESET_COLORS[nextColorIndex].hex,
+        amount: '',
+        percent: '',
+      },
+    ]);
+  };
+
+  // Remove child
+  const handleRemoveChild = (indexToRemove: number) => {
+    if (childrenData.length <= 1) return;
+    const updated = childrenData.filter((_, idx) => idx !== indexToRemove);
+    setChildrenData(updated);
+  };
+
+  // Split balance equally across all active children
   const handleSplitEvenly = () => {
-    if (parsedTotal <= 0) return;
-    const basePerKid = Math.floor((parsedTotal / 5) * 100) / 100;
-    const totalBase = basePerKid * 5;
+    if (parsedTotal <= 0 || childrenData.length === 0) return;
+    const count = childrenData.length;
+    const basePerKid = Math.floor((parsedTotal / count) * 100) / 100;
+    const totalBase = basePerKid * count;
     const remainderCents = Math.round((parsedTotal - totalBase) * 100);
 
     const updated = childrenData.map((c, idx) => {
@@ -111,7 +131,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
         return;
       }
       if (!allNamesEntered) {
-        setError('Please enter names for all 5 children.');
+        setError('Please enter names for all children.');
         return;
       }
       if (!isBalanced) {
@@ -236,13 +256,13 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Current Total Bank Account Balance
                 </label>
-                {parsedTotal > 0 && (
+                {parsedTotal > 0 && childrenData.length > 0 && (
                   <button
                     type="button"
                     onClick={handleSplitEvenly}
                     className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-2 self-start sm:self-auto"
                   >
-                    Split balance equally across all 5
+                    Split balance equally across all {childrenData.length}
                   </button>
                 )}
               </div>
@@ -261,9 +281,13 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
               </div>
             </div>
 
-            {/* Mode Switch */}
+            {/* Mode Switch & Header */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-700/60">
-              <h2 className="text-sm font-semibold text-slate-200">5 Children Allocation</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-slate-200">
+                  Children Sub-Accounts ({childrenData.length})
+                </h2>
+              </div>
               <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
                 <button
                   type="button"
@@ -292,21 +316,27 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
               </div>
             </div>
 
-            {/* 5 Children Inputs */}
+            {/* Children Inputs */}
             <div className="space-y-3">
               {childrenData.map((child, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-3 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl hover:border-slate-600 transition-colors"
                 >
-                  <div className="relative group">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow"
-                      style={{ backgroundColor: child.color }}
-                    >
-                      {index + 1}
-                    </div>
-                  </div>
+                  {/* Color / index swatch */}
+                  <select
+                    value={child.color}
+                    onChange={(e) => handleChildChange(index, 'color', e.target.value)}
+                    className="w-8 h-8 rounded-full text-xs font-bold text-white text-center cursor-pointer border border-slate-600 focus:outline-none shadow"
+                    style={{ backgroundColor: child.color }}
+                    title="Change color"
+                  >
+                    {PRESET_COLORS.map((pc) => (
+                      <option key={pc.hex} value={pc.hex} className="bg-slate-900 text-white">
+                        {pc.name}
+                      </option>
+                    ))}
+                  </select>
 
                   <input
                     type="text"
@@ -347,9 +377,31 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                       <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
                     </div>
                   )}
+
+                  {/* Remove Child Button (visible when > 1 child) */}
+                  {childrenData.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveChild(index)}
+                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                      title="Remove Child"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
+
+            {/* Add Another Child Button */}
+            <button
+              type="button"
+              onClick={handleAddChild}
+              className="w-full py-2.5 px-4 rounded-xl border border-dashed border-slate-700 hover:border-indigo-500/60 bg-slate-900/40 hover:bg-indigo-950/20 text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Add Another Child
+            </button>
 
             {/* Allocation & Reconciliation status bar */}
             <div

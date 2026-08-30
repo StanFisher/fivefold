@@ -145,7 +145,7 @@ export function SettingsModal({
           {/* Children Management */}
           <div className="space-y-3 pt-2 border-t border-slate-800">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Manage 5 Children
+              Manage Children ({childrenData.length})
             </h3>
 
             <div className="space-y-2">

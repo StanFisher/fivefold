@@ -6,8 +6,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { apy, accountName, children, date } = body;
 
-    if (!children || children.length !== 5) {
-      return NextResponse.json({ error: 'Exactly 5 children are required.' }, { status: 400 });
+    if (!children || !Array.isArray(children) || children.length < 1) {
+      return NextResponse.json({ error: 'At least one child is required.' }, { status: 400 });
     }
 
     if (typeof apy !== 'number' || apy < 0) {

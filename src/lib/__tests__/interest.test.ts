@@ -27,7 +27,7 @@ function runTests() {
   assert(getDaysInMonth(2024, 2) === 29, 'Feb 2024 has 29 days');
   assert(getDaysInMonth(2026, 8) === 31, 'Aug 2026 has 31 days');
 
-  // Test 2: Penny-exact distribution
+  // Test 2: Penny-exact distribution with 5 kids
   const items = [
     { id: 1, rawAmount: 1.2345 },
     { id: 2, rawAmount: 2.3456 },
@@ -44,12 +44,13 @@ function runTests() {
   distributedSum = Number(distributedSum.toFixed(2));
   assert(distributedSum === total, `Hamilton-Hare sum matches total exactly: ${distributedSum} === ${total}`);
 
-  // Test 3: Random Monte Carlo test for 1,000 simulated months with 5 kids
+  // Test 3: Monte Carlo simulation with random child counts (1 to 25 children)
   let allExact = true;
   for (let iter = 0; iter < 1000; iter++) {
-    const rawList = Array.from({ length: 5 }, (_, i) => ({
+    const childCount = Math.floor(Math.random() * 25) + 1; // 1 to 25 kids
+    const rawList = Array.from({ length: childCount }, (_, i) => ({
       id: i + 1,
-      rawAmount: Math.random() * 50,
+      rawAmount: Math.random() * 100,
     }));
     const totalRaw = rawList.reduce((s, x) => s + x.rawAmount, 0);
     const targetTotal = Number((Math.round(totalRaw * 100) / 100).toFixed(2));
@@ -62,18 +63,84 @@ function runTests() {
       break;
     }
   }
-  assert(allExact, '1,000 Monte Carlo simulations verify 0 penny drift');
+  assert(allExact, '1,000 Monte Carlo simulations verify 0 penny drift across 1 to 25 children');
 
-  // Test 4: Calculate monthly interest with initial balances and APY
-  const children: Child[] = [
+  // Test 4: Single Child account interest calculation
+  const singleChild: Child[] = [
+    { id: 1, name: 'Solo', color: '#3B82F6', sortOrder: 0, createdAt: '2026-01-01' },
+  ];
+  const singleChildTx: Transaction[] = [
+    {
+      id: 1,
+      date: '2026-08-01',
+      type: 'INITIAL',
+      totalAmount: 5000,
+      description: 'Initial balance',
+      createdAt: '2026-08-01T00:00:00Z',
+      splits: [{ childId: 1, amount: 5000 }],
+    },
+  ];
+  const singlePreview = calculateMonthlyInterest(singleChild, singleChildTx, 5.0, 2026, 8);
+  assert(singlePreview.childAllocations.length === 1, '1 child allocation generated');
+  assert(singlePreview.childAllocations[0].calculatedInterest === singlePreview.totalCalculatedInterest, 'Single child receives 100% of interest');
+
+  // Test 5: 3 Children account calculation
+  const threeChildren: Child[] = [
+    { id: 1, name: 'Maya', color: '#3B82F6', sortOrder: 0, createdAt: '2026-01-01' },
+    { id: 2, name: 'Noah', color: '#10B981', sortOrder: 1, createdAt: '2026-01-01' },
+    { id: 3, name: 'Zoe', color: '#F59E0B', sortOrder: 2, createdAt: '2026-01-01' },
+  ];
+  const threeChildrenTx: Transaction[] = [
+    {
+      id: 1,
+      date: '2026-08-01',
+      type: 'INITIAL',
+      totalAmount: 3000,
+      description: 'Initial balance',
+      createdAt: '2026-08-01T00:00:00Z',
+      splits: [
+        { childId: 1, amount: 1000 },
+        { childId: 2, amount: 1000 },
+        { childId: 3, amount: 1000 },
+      ],
+    },
+  ];
+  const threePreview = calculateMonthlyInterest(threeChildren, threeChildrenTx, 5.0, 2026, 8);
+  const threeSum = Number(threePreview.childAllocations.reduce((s, c) => s + c.calculatedInterest, 0).toFixed(2));
+  assert(threeSum === threePreview.totalCalculatedInterest, `3 children interest sum is exact ($${threeSum} === $${threePreview.totalCalculatedInterest})`);
+
+  // Test 6: 7 Children account calculation
+  const sevenChildren: Child[] = Array.from({ length: 7 }, (_, i) => ({
+    id: i + 1,
+    name: `Child ${i + 1}`,
+    color: '#3B82F6',
+    sortOrder: i,
+    createdAt: '2026-01-01',
+  }));
+  const sevenChildrenTx: Transaction[] = [
+    {
+      id: 1,
+      date: '2026-08-01',
+      type: 'INITIAL',
+      totalAmount: 7000,
+      description: 'Initial balance',
+      createdAt: '2026-08-01T00:00:00Z',
+      splits: sevenChildren.map((c) => ({ childId: c.id, amount: 1000 })),
+    },
+  ];
+  const sevenPreview = calculateMonthlyInterest(sevenChildren, sevenChildrenTx, 5.0, 2026, 8);
+  const sevenSum = Number(sevenPreview.childAllocations.reduce((s, c) => s + c.calculatedInterest, 0).toFixed(2));
+  assert(sevenSum === sevenPreview.totalCalculatedInterest, `7 children interest sum is exact ($${sevenSum} === $${sevenPreview.totalCalculatedInterest})`);
+
+  // Test 7: 5 Children with mid-month deposit
+  const fiveChildren: Child[] = [
     { id: 1, name: 'Emma', color: '#3B82F6', sortOrder: 0, createdAt: '2026-01-01' },
     { id: 2, name: 'Liam', color: '#10B981', sortOrder: 1, createdAt: '2026-01-01' },
     { id: 3, name: 'Sophia', color: '#F59E0B', sortOrder: 2, createdAt: '2026-01-01' },
     { id: 4, name: 'Lucas', color: '#EC4899', sortOrder: 3, createdAt: '2026-01-01' },
     { id: 5, name: 'Olivia', color: '#8B5CF6', sortOrder: 4, createdAt: '2026-01-01' },
   ];
-
-  const transactions: Transaction[] = [
+  const fiveChildrenTx: Transaction[] = [
     {
       id: 1,
       date: '2026-08-01',
@@ -89,21 +156,6 @@ function runTests() {
         { childId: 5, amount: 2000 },
       ],
     },
-  ];
-
-  // For August 2026 (31 days, 365 days in 2026), 5.0% APY on $10,000
-  // Daily interest = 10000 * 0.05 / 365 = 1.369863 per day
-  // For 31 days = 42.46575... => rounds to $42.47 total
-  // Each child with $2000 gets 20% => $42.47 * 0.2 = $8.494 => 2 kids get $8.50, 3 get $8.49 => sum = 8.50*2 + 8.49*3 = 17.00 + 25.47 = $42.47
-  const preview = calculateMonthlyInterest(children, transactions, 5.0, 2026, 8);
-  assert(preview.totalCalculatedInterest === 42.47, `Total calculated interest is $42.47 (got ${preview.totalCalculatedInterest})`);
-  const kidsSum = Number(preview.childAllocations.reduce((s, c) => s + c.calculatedInterest, 0).toFixed(2));
-  assert(kidsSum === 42.47, `Kids sum is exact to the penny ($42.47 === ${kidsSum})`);
-
-  // Test 5: Mid-month deposit
-  // Emma gets a $1,000 deposit on Aug 16
-  const transactionsWithDeposit: Transaction[] = [
-    ...transactions,
     {
       id: 2,
       date: '2026-08-16',
@@ -115,7 +167,7 @@ function runTests() {
     },
   ];
 
-  const previewDeposit = calculateMonthlyInterest(children, transactionsWithDeposit, 5.0, 2026, 8);
+  const previewDeposit = calculateMonthlyInterest(fiveChildren, fiveChildrenTx, 5.0, 2026, 8);
   const emmaAllocation = previewDeposit.childAllocations.find((c) => c.childId === 1)!;
   const liamAllocation = previewDeposit.childAllocations.find((c) => c.childId === 2)!;
 

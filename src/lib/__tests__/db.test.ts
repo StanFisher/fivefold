@@ -1,6 +1,4 @@
 import { completeOnboarding, getChildren, getSettings, createTransaction, postMonthlyInterest, getMonthInterestPreview, recordReconciliation, getTransactions, deleteTransaction } from '../db';
-import fs from 'fs';
-import path from 'path';
 
 function runDbTests() {
   console.log('Running FiveFold Database & Workflow Tests...\n');
@@ -17,7 +15,38 @@ function runDbTests() {
     }
   }
 
-  // 1. Test Onboarding with 5 children
+  // 1. Test Onboarding with 3 children (dynamic child count verification)
+  const threeKidOnboarding = completeOnboarding({
+    apy: 5.0,
+    accountName: 'Wealthfront 3 Kids',
+    date: '2026-08-01',
+    children: [
+      { name: 'Maya', color: '#3B82F6', initialAmount: 1000 },
+      { name: 'Noah', color: '#10B981', initialAmount: 2000 },
+      { name: 'Zoe', color: '#F59E0B', initialAmount: 3000 },
+    ],
+  });
+  assert(threeKidOnboarding.success === true, 'Onboarding with 3 children succeeded');
+  const threeKids = getChildren();
+  assert(threeKids.length === 3, '3 children created in database');
+  const threeTotal = threeKids.reduce((s, c) => s + (c.balance || 0), 0);
+  assert(threeTotal === 6000, `Total 3-kid balance is $6,000.00 (got ${threeTotal})`);
+
+  // 2. Test Onboarding with 1 child
+  const singleOnboarding = completeOnboarding({
+    apy: 4.5,
+    accountName: 'Solo Account',
+    date: '2026-08-01',
+    children: [
+      { name: 'Solo', color: '#3B82F6', initialAmount: 5000 },
+    ],
+  });
+  assert(singleOnboarding.success === true, 'Onboarding with 1 child succeeded');
+  const singleKid = getChildren();
+  assert(singleKid.length === 1, '1 child created in database');
+  assert(singleKid[0].percentage === 100, 'Single child has 100% share');
+
+  // 3. Test Full Onboarding with 5 children
   const onboardingRes = completeOnboarding({
     apy: 5.0,
     accountName: 'Wealthfront Cash Account',
@@ -31,7 +60,7 @@ function runDbTests() {
     ],
   });
 
-  assert(onboardingRes.success === true, 'Onboarding succeeded');
+  assert(onboardingRes.success === true, 'Onboarding with 5 children succeeded');
 
   const settings = getSettings();
   assert(settings.isOnboarded === true, 'Settings shows onboarded');
@@ -46,7 +75,7 @@ function runDbTests() {
   assert(alex.balance === 1500, 'Alex balance is $1500');
   assert(alex.percentage === 15, 'Alex percentage is 15%');
 
-  // 2. Add single deposit
+  // 4. Add single deposit
   const depositTx = createTransaction({
     date: '2026-08-10',
     type: 'DEPOSIT',
@@ -59,7 +88,7 @@ function runDbTests() {
   const samAfterDep = getChildren().find((c) => c.name === 'Sam')!;
   assert(samAfterDep.balance === 3000, `Sam balance updated to $3000 (got ${samAfterDep.balance})`);
 
-  // 3. Add split deposit across all 5 kids ($250 grandparent gift = $50 each)
+  // 5. Add split deposit across all 5 kids ($250 grandparent gift = $50 each)
   const splitDeposit = createTransaction({
     date: '2026-08-15',
     type: 'DEPOSIT',
@@ -69,7 +98,7 @@ function runDbTests() {
   });
   assert(splitDeposit.splits.length === 5, 'Split deposit has 5 splits');
 
-  // 4. Add withdrawal for Taylor ($100 for concert ticket)
+  // 6. Add withdrawal for Taylor ($100 for concert ticket)
   const taylor = children.find((c) => c.name === 'Taylor')!;
   const withdrawTx = createTransaction({
     date: '2026-08-20',
@@ -80,13 +109,13 @@ function runDbTests() {
   });
   assert(withdrawTx.id > 0, 'Withdrawal transaction created');
 
-  // 5. Test Interest Preview for August 2026
+  // 7. Test Interest Preview for August 2026
   const preview = getMonthInterestPreview(2026, 8);
   assert(preview.alreadyPosted === false, 'August interest is not yet posted');
   assert(preview.totalCalculatedInterest > 0, `August interest calculated: $${preview.totalCalculatedInterest}`);
   assert(preview.childAllocations.length === 5, 'All 5 children have interest allocations');
 
-  // 6. Post Monthly Interest
+  // 8. Post Monthly Interest
   const interestTx = postMonthlyInterest(2026, 8);
   assert(interestTx.type === 'INTEREST', 'Interest transaction posted');
   assert(interestTx.splits.length === 5, 'Interest split amongst 5 children');
@@ -94,7 +123,7 @@ function runDbTests() {
   const previewAfter = getMonthInterestPreview(2026, 8);
   assert(previewAfter.alreadyPosted === true, 'August interest now marked as already posted');
 
-  // 7. Reconciliation check
+  // 9. Reconciliation check
   const newChildren = getChildren();
   const currentTotal = Number(newChildren.reduce((s, c) => s + (c.balance || 0), 0).toFixed(2));
   const recon = recordReconciliation(currentTotal, '2026-08-31');

@@ -221,7 +221,7 @@ export function Dashboard({
             {/* Proportional Stack Bar */}
             <div className="pt-6 space-y-2">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Account Share Breakdown (5 Children)</span>
+                <span>Account Share Breakdown ({childrenList.length} {childrenList.length === 1 ? 'Child' : 'Children'})</span>
                 <span>100% Allocated</span>
               </div>
               <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden flex shadow-inner">
@@ -282,18 +282,18 @@ export function Dashboard({
           </div>
         </div>
 
-        {/* 5 Children Sub-Accounts Grid */}
+        {/* Children Sub-Accounts Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Children Sub-Accounts</h2>
+              <h2 className="text-lg font-bold text-white tracking-tight">Children Sub-Accounts ({childrenList.length})</h2>
               <p className="text-xs text-slate-400">
                 Individual balances and allocations within the pooled savings account
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {childrenList.map((child) => (
               <div
                 key={child.id}
