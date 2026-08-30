@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldCheck, Sparkles, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShieldCheck, AlertCircle, ArrowRight, Percent, DollarSign, Wrench, Plus, Trash2, Check } from 'lucide-react';
 import { formatCurrency, PRESET_COLORS } from '@/lib/formatters';
 import { EnvironmentInfo } from '@/lib/types';
 import { ThemeToggle } from './ThemeToggle';
@@ -19,6 +19,24 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
+
+  const colorPickerRef = useRef<HTMLDivElement | null>(null);
+
+  // Click outside to close popover without using an invisible full-screen blocking overlay
+  useEffect(() => {
+    if (openColorPickerIndex === null) return;
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setOpenColorPickerIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [openColorPickerIndex]);
 
   // Start with 1 blank placeholder for the first child
   const [childrenData, setChildrenData] = useState([
@@ -44,23 +62,24 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const canSubmit = isBalanced && allNamesEntered && parsedApy > 0 && accountName.trim().length > 0;
 
   const handleAddChild = () => {
-    const nextColorIndex = childrenData.length % PRESET_COLORS.length;
-    setChildrenData([
-      ...childrenData,
-      {
-        name: '',
-        color: PRESET_COLORS[nextColorIndex].hex,
-        amount: '',
-        percent: '',
-      },
-    ]);
+    setChildrenData((prev) => {
+      const nextColorIndex = prev.length % PRESET_COLORS.length;
+      return [
+        ...prev,
+        {
+          name: '',
+          color: PRESET_COLORS[nextColorIndex].hex,
+          amount: '',
+          percent: '',
+        },
+      ];
+    });
   };
 
   const handleRemoveChild = (indexToRemove: number) => {
     if (childrenData.length <= 1) return;
     if (openColorPickerIndex === indexToRemove) setOpenColorPickerIndex(null);
-    const updated = childrenData.filter((_, idx) => idx !== indexToRemove);
-    setChildrenData(updated);
+    setChildrenData((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleSplitEvenly = () => {
@@ -70,52 +89,57 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
     const totalBase = basePerKid * count;
     const remainderCents = Math.round((parsedTotal - totalBase) * 100);
 
-    const updated = childrenData.map((c, idx) => {
-      const extra = idx < remainderCents ? 0.01 : 0;
-      const amt = (basePerKid + extra).toFixed(2);
-      const pct = ((parseFloat(amt) / parsedTotal) * 100).toFixed(1);
-      return { ...c, amount: amt, percent: pct };
-    });
-    setChildrenData(updated);
+    setChildrenData((prev) =>
+      prev.map((c, idx) => {
+        const extra = idx < remainderCents ? 0.01 : 0;
+        const amt = (basePerKid + extra).toFixed(2);
+        const pct = ((parseFloat(amt) / parsedTotal) * 100).toFixed(1);
+        return { ...c, amount: amt, percent: pct };
+      })
+    );
   };
 
   const handleChildChange = (index: number, field: string, value: string) => {
-    const updated = [...childrenData];
-    updated[index] = { ...updated[index], [field]: value };
+    setChildrenData((prev) => {
+      const updated = [...prev];
+      if (!updated[index]) return prev;
+      updated[index] = { ...updated[index], [field]: value };
 
-    if (field === 'amount') {
-      if (value === '' || isNaN(parseFloat(value))) {
-        updated[index].percent = '';
-      } else if (parsedTotal > 0) {
-        const amt = parseFloat(value) || 0;
-        updated[index].percent = ((amt / parsedTotal) * 100).toFixed(1);
+      if (field === 'amount') {
+        if (value === '' || isNaN(parseFloat(value))) {
+          updated[index].percent = '';
+        } else if (parsedTotal > 0) {
+          const amt = parseFloat(value) || 0;
+          updated[index].percent = ((amt / parsedTotal) * 100).toFixed(1);
+        }
+      } else if (field === 'percent') {
+        if (value === '' || isNaN(parseFloat(value))) {
+          updated[index].amount = '';
+        } else if (parsedTotal > 0) {
+          const pct = parseFloat(value) || 0;
+          updated[index].amount = ((parsedTotal * pct) / 100).toFixed(2);
+        }
       }
-    } else if (field === 'percent') {
-      if (value === '' || isNaN(parseFloat(value))) {
-        updated[index].amount = '';
-      } else if (parsedTotal > 0) {
-        const pct = parseFloat(value) || 0;
-        updated[index].amount = ((parsedTotal * pct) / 100).toFixed(2);
-      }
-    }
 
-    setChildrenData(updated);
+      return updated;
+    });
   };
 
   const handleTotalBalanceChange = (newTotalStr: string) => {
     setTotalBalance(newTotalStr);
     const newTotal = parseFloat(newTotalStr) || 0;
     if (mode === 'percent') {
-      const updated = childrenData.map((c) => {
-        if (!c.percent || newTotal <= 0) {
-          return { ...c, amount: '' };
-        }
-        return {
-          ...c,
-          amount: ((newTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2),
-        };
-      });
-      setChildrenData(updated);
+      setChildrenData((prev) =>
+        prev.map((c) => {
+          if (!c.percent || newTotal <= 0) {
+            return { ...c, amount: '' };
+          }
+          return {
+            ...c,
+            amount: ((newTotal * (parseFloat(c.percent) || 0)) / 100).toFixed(2),
+          };
+        })
+      );
     }
   };
 
@@ -177,14 +201,6 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors">
-      {/* Click outside backdrop for color picker popovers */}
-      {openColorPickerIndex !== null && (
-        <div
-          className="fixed inset-0 z-20 cursor-default"
-          onClick={() => setOpenColorPickerIndex(null)}
-        />
-      )}
-
       {/* Top right theme toggle */}
       <div className="fixed top-4 right-4 z-40">
         <ThemeToggle />
@@ -216,7 +232,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl transition-colors">
+        <div className="relative z-10 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl transition-colors">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="p-4 rounded-xl bg-rose-50 dark:bg-red-950/60 border border-rose-200 dark:border-red-800/80 flex items-center gap-3 text-rose-700 dark:text-red-200 text-sm">
@@ -337,14 +353,17 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   <div
                     key={index}
                     className={`relative flex items-center gap-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 p-3 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition-colors ${
-                      isPickerOpen ? 'z-30' : 'z-10'
+                      isPickerOpen ? 'z-40 ring-1 ring-indigo-500/50' : 'z-10'
                     }`}
                   >
                     {/* Option A: Clickable Avatar Circle with Floating Swatch Popover */}
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setOpenColorPickerIndex(isPickerOpen ? null : index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenColorPickerIndex(isPickerOpen ? null : index);
+                        }}
                         className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs shadow-md transition-transform hover:scale-105 cursor-pointer ring-2 ring-black/10 dark:ring-white/10"
                         style={{ backgroundColor: child.color }}
                         title="Click to change color"
@@ -354,7 +373,11 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
 
                       {/* Floating Popover Palette */}
                       {isPickerOpen && (
-                        <div className="absolute left-0 top-11 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 shadow-2xl w-48 animate-in fade-in">
+                        <div
+                          ref={colorPickerRef}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute left-0 top-11 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 shadow-2xl w-48 animate-in fade-in"
+                        >
                           <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-2">
                             Select Child Color
                           </div>
@@ -365,7 +388,8 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                                 <button
                                   key={pc.hex}
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleChildChange(index, 'color', pc.hex);
                                     setOpenColorPickerIndex(null);
                                   }}

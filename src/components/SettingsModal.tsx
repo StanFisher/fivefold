@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Settings, RotateCcw, AlertTriangle, Check, Save } from 'lucide-react';
 import { AccountSettings, Child } from '@/lib/types';
 import { PRESET_COLORS } from '@/lib/formatters';
@@ -33,12 +33,32 @@ export function SettingsModal({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
 
+  const colorPickerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (openColorPickerIndex === null) return;
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setOpenColorPickerIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [openColorPickerIndex]);
+
   if (!isOpen) return null;
 
   const handleChildChange = (index: number, field: string, value: string) => {
-    const updated = [...childrenData];
-    updated[index] = { ...updated[index], [field]: value };
-    setChildrenData(updated);
+    setChildrenData((prev) => {
+      const updated = [...prev];
+      if (!updated[index]) return prev;
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -80,12 +100,6 @@ export function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-      {openColorPickerIndex !== null && (
-        <div
-          className="fixed inset-0 z-20 cursor-default"
-          onClick={() => setOpenColorPickerIndex(null)}
-        />
-      )}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-30 transition-colors">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
@@ -175,14 +189,17 @@ export function SettingsModal({
                   <div
                     key={child.id}
                     className={`relative flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 p-2.5 rounded-xl ${
-                      isPickerOpen ? 'z-30' : 'z-10'
+                      isPickerOpen ? 'z-40 ring-1 ring-indigo-500/50' : 'z-10'
                     }`}
                   >
                     {/* Option A Avatar Button */}
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setOpenColorPickerIndex(isPickerOpen ? null : index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenColorPickerIndex(isPickerOpen ? null : index);
+                        }}
                         className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs shadow transition-transform hover:scale-105 cursor-pointer ring-2 ring-white/10"
                         style={{ backgroundColor: child.color }}
                         title="Click to change color"
@@ -192,7 +209,11 @@ export function SettingsModal({
 
                       {/* Popover */}
                       {isPickerOpen && (
-                        <div className="absolute left-0 top-10 z-30 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 shadow-2xl w-44 animate-in fade-in">
+                        <div
+                          ref={colorPickerRef}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute left-0 top-10 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 shadow-2xl w-44 animate-in fade-in"
+                        >
                           <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
                             Select Color
                           </div>
@@ -203,7 +224,8 @@ export function SettingsModal({
                                 <button
                                   key={pc.hex}
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleChildChange(index, 'color', pc.hex);
                                     setOpenColorPickerIndex(null);
                                   }}
