@@ -43,11 +43,12 @@ export function TransactionModal({
       if (defaultChildId) {
         setSelectedChildId(defaultChildId);
         setAllocationMode('single');
-      } else if (childrenList.length > 0) {
+      } else if (childrenList && childrenList.length > 0) {
         setSelectedChildId(childrenList[0].id);
+        setAllocationMode('single');
       }
     }
-  }, [isOpen, defaultChildId, defaultType, childrenList]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
