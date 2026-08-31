@@ -125,7 +125,7 @@ export function getSettings(): AccountSettings {
 
   return {
     apy: parseFloat(map.get('apy') || '5.0'),
-    accountName: map.get('account_name') || 'Wealthfront Cash Account',
+    accountName: map.get('account_name') || 'Primary Savings',
     isOnboarded: map.get('is_onboarded') === 'true',
     lastReconciledDate: map.get('last_reconciled_date') || null,
     lastReconciledBalance: map.has('last_reconciled_balance')

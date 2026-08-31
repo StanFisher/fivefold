@@ -108,7 +108,7 @@ export function InterestModal({
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">Monthly Interest Distribution</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Wealthfront Daily Accrual ({accountApy.toFixed(2)}% APY)
+                Daily APY Accrual ({accountApy.toFixed(2)}% APY)
               </p>
             </div>
           </div>

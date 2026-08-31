@@ -11,7 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # FiveFold — AI Agent Guidelines & Architecture Instructions
 
 ## 1. Project Purpose & Core Domain
-**FiveFold** is a multi-child savings account management and reconciliation web application designed for a single pooled high-yield savings account (Wealthfront Cash/Savings) across 5 children.
+**FiveFold** is a multi-child savings account management and reconciliation web application designed for a single pooled high-yield savings account (HYSA) across multiple children.
 - **Automated APY Accrual**: Daily balance accrual based on account APY (`dailyRate = APY / 365 or 366`).
 - **Hamilton-Hare Penny-Exact Allocation**: Guarantees zero rounding drift so the sum of children's interest credits equals the bank deposit penny-for-penny.
 - **Reconciliation Engine**: Real-time validation of $\sum \text{child sub-balances} == \text{bank account balance}$.

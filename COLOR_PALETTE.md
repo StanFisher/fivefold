@@ -1,7 +1,7 @@
 # FiveFold — App Context & Color Palette
 
 ## About FiveFold
-**FiveFold** is a multi-child pooled savings account and interest reconciliation application designed for families managing a single high-yield savings account (Wealthfront Cash/Savings) across multiple children. It tracks individual child sub-balances, records split/single deposits and withdrawals, and automatically allocates monthly bank APY interest down to the exact penny with zero rounding drift.
+**FiveFold** is a multi-child pooled savings account and interest reconciliation application designed for families managing a single high-yield savings account (HYSA) across multiple children. It tracks individual child sub-balances, records split/single deposits and withdrawals, and automatically allocates monthly bank APY interest down to the exact penny with zero rounding drift.
 
 ---
 

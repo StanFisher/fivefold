@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     completeOnboarding({
       apy,
-      accountName: accountName || 'Wealthfront Cash Account',
+      accountName: accountName || 'Primary Savings',
       children,
       date,
     });

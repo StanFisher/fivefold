@@ -2,7 +2,7 @@
 
 **FiveFold** is a multi-child savings account management and reconciliation web app built with Next.js, TypeScript, Tailwind CSS, and SQLite.
 
-It tracks individual sub-balances for 5 children in a single pooled savings account (such as a Wealthfront Cash / HYSA account), automates penny-exact proportional monthly interest calculations based on your account's APY, and reconciles balances in real time.
+It tracks individual sub-balances for children in a single pooled savings account (such as a high-yield savings account / HYSA), automates penny-exact proportional monthly interest calculations based on your account's APY, and reconciles balances in real time.
 
 ---
 

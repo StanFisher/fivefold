@@ -18,7 +18,7 @@ function runDbTests() {
   // 1. Test Onboarding with 3 children (dynamic child count verification)
   const threeKidOnboarding = completeOnboarding({
     apy: 5.0,
-    accountName: 'Wealthfront 3 Kids',
+    accountName: 'Family Savings 3 Kids',
     date: '2026-08-01',
     children: [
       { name: 'Maya', color: '#3B82F6', initialAmount: 1000 },
@@ -49,7 +49,7 @@ function runDbTests() {
   // 3. Test Full Onboarding with 5 children
   const onboardingRes = completeOnboarding({
     apy: 5.0,
-    accountName: 'Wealthfront Cash Account',
+    accountName: 'High-Yield Savings Account',
     date: '2026-08-01',
     children: [
       { name: 'Alex', color: '#3B82F6', initialAmount: 1500 },

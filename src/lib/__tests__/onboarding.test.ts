@@ -128,11 +128,11 @@ function runOnboardingTests() {
     return { canSubmit, isBalanced, allNamesEntered };
   }
 
-  const v1 = validateOnboarding('Wealthfront', 5.0, 1000, splitResult);
+  const v1 = validateOnboarding('Family Savings', 5.0, 1000, splitResult);
   assert(v1.canSubmit === true, 'Valid onboarding form passes validation');
 
   const emptyKidNames = splitResult.map((k) => ({ ...k, name: '' }));
-  const v2 = validateOnboarding('Wealthfront', 5.0, 1000, emptyKidNames);
+  const v2 = validateOnboarding('Family Savings', 5.0, 1000, emptyKidNames);
   assert(v2.canSubmit === false && v2.allNamesEntered === false, 'Blank kid names block submission');
 
   console.log(`\nOnboarding Tests completed: ${passed} passed, ${failed} failed.`);

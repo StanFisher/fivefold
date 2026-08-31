@@ -121,7 +121,7 @@ export function ReconciliationModal({
                   required
                 />
               </div>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">From Wealthfront balance</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">From bank statement balance</span>
             </div>
           </div>
 

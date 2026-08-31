@@ -255,7 +255,7 @@ export function Dashboard({
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-sans font-normal ml-1">/mo</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Compounded daily via standard Wealthfront calculation.
+                Compounded daily based on account balance &amp; APY.
               </p>
             </div>
 
