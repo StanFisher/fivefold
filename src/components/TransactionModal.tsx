@@ -236,7 +236,7 @@ export function TransactionModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder={type === 'DEPOSIT' ? 'e.g. Birthday check from Grandma' : 'e.g. Bought Lego set'}
+              placeholder="Description or memo"
             />
           </div>
 

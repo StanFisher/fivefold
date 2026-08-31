@@ -101,7 +101,7 @@ function runOnboardingTests() {
     return kids.map((c, idx) => {
       const extra = idx < remainderCents ? 0.01 : 0;
       const amt = (basePerKid + extra).toFixed(2);
-      const pct = ((parseFloat(amt) / total) * 100).toFixed(1);
+      const pct = ((parseFloat(amt) / total) * 100).toFixed(2);
       return { ...c, amount: amt, percent: pct };
     });
   }
@@ -115,6 +115,9 @@ function runOnboardingTests() {
   const splitResult = simulateSplitEvenly(1000, testKids);
   const sumAmounts = splitResult.reduce((sum, k) => sum + parseFloat(k.amount), 0);
   assert(Number(sumAmounts.toFixed(2)) === 1000, 'Split evenly sums to exact total: $333.34 + $333.33 + $333.33 = $1000.00');
+  assert(splitResult[0].percent === '33.33', 'Child 1 percentage formatted with 2 decimals: 33.33%');
+  assert(splitResult[1].percent === '33.33', 'Child 2 percentage formatted with 2 decimals: 33.33%');
+  assert(splitResult[2].percent === '33.33', 'Child 3 percentage formatted with 2 decimals: 33.33%');
 
   // Test 8: Validation logic
   function validateOnboarding(accountName: string, apy: number, total: number, kids: ChildFormState[]) {

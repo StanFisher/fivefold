@@ -150,6 +150,7 @@ export function SettingsModal({
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Bank or account name"
                   required
                 />
               </div>
@@ -166,6 +167,7 @@ export function SettingsModal({
                     value={apy}
                     onChange={(e) => setApy(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-3.5 pr-8 py-2 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="0.00"
                     required
                   />
                   <span className="absolute right-3 top-2 text-slate-400 text-sm">%</span>
@@ -247,7 +249,7 @@ export function SettingsModal({
                       value={child.name}
                       onChange={(e) => handleChildChange(index, 'name', e.target.value)}
                       className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      placeholder="Child Name"
+                      placeholder="Child name"
                       required
                     />
                   </div>

@@ -19,8 +19,22 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
+  const [focusChildIndex, setFocusChildIndex] = useState<number | null>(null);
+
+  // Start with 1 blank placeholder for the first child
+  const [childrenData, setChildrenData] = useState([
+    { name: '', color: PRESET_COLORS[0].hex, amount: '', percent: '' },
+  ]);
 
   const colorPickerRef = useRef<HTMLDivElement | null>(null);
+  const nameInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (focusChildIndex !== null && nameInputRefs.current[focusChildIndex]) {
+      nameInputRefs.current[focusChildIndex]?.focus();
+      setFocusChildIndex(null);
+    }
+  }, [focusChildIndex, childrenData.length]);
 
   // Click outside to close popover without using an invisible full-screen blocking overlay
   useEffect(() => {
@@ -37,11 +51,6 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [openColorPickerIndex]);
-
-  // Start with 1 blank placeholder for the first child
-  const [childrenData, setChildrenData] = useState([
-    { name: '', color: PRESET_COLORS[0].hex, amount: '', percent: '' },
-  ]);
 
   const parsedTotal = parseFloat(totalBalance) || 0;
   const parsedApy = parseFloat(apy) || 0;
@@ -61,8 +70,11 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
   const allNamesEntered = childrenData.length > 0 && childrenData.every((c) => c.name.trim().length > 0);
   const canSubmit = isBalanced && allNamesEntered && parsedApy > 0 && accountName.trim().length > 0;
 
-  const handleAddChild = () => {
+  const handleAddChild = (autoFocusNew = false) => {
     setChildrenData((prev) => {
+      if (autoFocusNew) {
+        setFocusChildIndex(prev.length);
+      }
       const nextColorIndex = prev.length % PRESET_COLORS.length;
       return [
         ...prev,
@@ -93,7 +105,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
       prev.map((c, idx) => {
         const extra = idx < remainderCents ? 0.01 : 0;
         const amt = (basePerKid + extra).toFixed(2);
-        const pct = ((parseFloat(amt) / parsedTotal) * 100).toFixed(1);
+        const pct = ((parseFloat(amt) / parsedTotal) * 100).toFixed(2);
         return { ...c, amount: amt, percent: pct };
       })
     );
@@ -110,7 +122,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
           updated[index].percent = '';
         } else if (parsedTotal > 0) {
           const amt = parseFloat(value) || 0;
-          updated[index].percent = ((amt / parsedTotal) * 100).toFixed(1);
+          updated[index].percent = ((amt / parsedTotal) * 100).toFixed(2);
         }
       } else if (field === 'percent') {
         if (value === '' || isNaN(parseFloat(value))) {
@@ -252,7 +264,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                  placeholder="e.g. Wealthfront Cash Account"
+                  placeholder="Bank or account name"
                   required
                 />
               </div>
@@ -269,7 +281,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                     value={apy}
                     onChange={(e) => setApy(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-8"
-                    placeholder="e.g. 5.00"
+                    placeholder="0.00"
                     required
                   />
                   <span className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 text-sm font-medium">%</span>
@@ -407,11 +419,24 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                     </div>
 
                     <input
+                      ref={(el) => {
+                        nameInputRefs.current[index] = el;
+                      }}
                       type="text"
                       value={child.name}
                       onChange={(e) => handleChildChange(index, 'name', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (index === childrenData.length - 1) {
+                            handleAddChild(true);
+                          } else {
+                            nameInputRefs.current[index + 1]?.focus();
+                          }
+                        }
+                      }}
                       className="flex-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder={`Child ${index + 1} Name`}
+                      placeholder="Child name"
                       required
                     />
 
@@ -424,6 +449,16 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                           min="0"
                           value={child.amount}
                           onChange={(e) => handleChildChange(index, 'amount', e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (index === childrenData.length - 1) {
+                                handleAddChild(true);
+                              } else {
+                                nameInputRefs.current[index + 1]?.focus();
+                              }
+                            }
+                          }}
                           className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-6 pr-2 py-1.5 text-slate-900 dark:text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           placeholder="0.00"
                           required
@@ -433,13 +468,23 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
                       <div className="relative w-36">
                         <input
                           type="number"
-                          step="0.1"
+                          step="0.01"
                           min="0"
                           max="100"
                           value={child.percent}
                           onChange={(e) => handleChildChange(index, 'percent', e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (index === childrenData.length - 1) {
+                                handleAddChild(true);
+                              } else {
+                                nameInputRefs.current[index + 1]?.focus();
+                              }
+                            }
+                          }}
                           className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-3 pr-6 py-1.5 text-slate-900 dark:text-white text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="0.0"
+                          placeholder="0.00"
                           required
                         />
                         <span className="absolute right-2 top-1.5 text-slate-400 text-xs">%</span>
@@ -465,7 +510,7 @@ export function Onboarding({ onComplete, environment }: OnboardingProps) {
             {/* Add Another Child Button */}
             <button
               type="button"
-              onClick={handleAddChild}
+              onClick={() => handleAddChild(true)}
               className="w-full py-2.5 px-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500/60 bg-slate-50 dark:bg-slate-900/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />

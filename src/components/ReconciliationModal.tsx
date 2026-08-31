@@ -117,6 +117,7 @@ export function ReconciliationModal({
                   value={bankBalance}
                   onChange={(e) => setBankBalance(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-7 pr-3 py-2 text-slate-900 dark:text-white font-mono font-semibold text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="0.00"
                   required
                 />
               </div>
@@ -182,7 +183,7 @@ export function ReconciliationModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-xs placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="e.g. End of month statement check"
+                placeholder="Reconciliation notes"
               />
             </div>
           </div>

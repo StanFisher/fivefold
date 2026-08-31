@@ -188,7 +188,7 @@ export function getChildren(): Child[] {
 
   return childrenRows.map((c) => {
     const balance = balanceMap.get(c.id) || 0;
-    const percentage = totalBalance > 0 ? Number(((balance / totalBalance) * 100).toFixed(1)) : 0;
+    const percentage = totalBalance > 0 ? Number(((balance / totalBalance) * 100).toFixed(2)) : 0;
     return {
       ...c,
       balance,
