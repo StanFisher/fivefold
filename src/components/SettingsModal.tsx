@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Settings, RotateCcw, AlertTriangle, Check, Save } from 'lucide-react';
-import { AccountSettings, Child } from '@/lib/types';
+import { AccountSettings, Child, InterestPostingDay } from '@/lib/types';
 import { PRESET_COLORS } from '@/lib/formatters';
 
 interface SettingsModalProps {
@@ -24,6 +24,9 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [apy, setApy] = useState<string>(settings.apy.toFixed(2));
   const [accountName, setAccountName] = useState<string>(settings.accountName);
+  const [interestPostingDay, setInterestPostingDay] = useState<InterestPostingDay>(
+    settings.interestPostingDay || 'FIRST_OF_NEXT_MONTH'
+  );
   const [childrenData, setChildrenData] = useState(
     childrenList.map((c) => ({ id: c.id, name: c.name, color: c.color }))
   );
@@ -79,6 +82,7 @@ export function SettingsModal({
         body: JSON.stringify({
           apy: parsedApy,
           accountName: accountName.trim(),
+          interestPostingDay,
           children: childrenData,
         }),
       });
@@ -172,6 +176,60 @@ export function SettingsModal({
                   />
                   <span className="absolute right-3 top-2 text-slate-400 text-sm">%</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Interest Posting Date Preference */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Monthly Interest Posting Date
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label
+                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    interestPostingDay === 'FIRST_OF_NEXT_MONTH'
+                      ? 'bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-slate-900 dark:text-white ring-1 ring-indigo-500/30'
+                      : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="interestPostingDay"
+                    value="FIRST_OF_NEXT_MONTH"
+                    checked={interestPostingDay === 'FIRST_OF_NEXT_MONTH'}
+                    onChange={() => setInterestPostingDay('FIRST_OF_NEXT_MONTH')}
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-xs font-semibold block">1st of Next Month</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      e.g., Sep 1 for August (Wealthfront, CapOne)
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    interestPostingDay === 'END_OF_MONTH'
+                      ? 'bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-slate-900 dark:text-white ring-1 ring-indigo-500/30'
+                      : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="interestPostingDay"
+                    value="END_OF_MONTH"
+                    checked={interestPostingDay === 'END_OF_MONTH'}
+                    onChange={() => setInterestPostingDay('END_OF_MONTH')}
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-xs font-semibold block">End of Statement Month</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      e.g., Aug 31 for August (Ally, Marcus, Chase)
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
           </div>

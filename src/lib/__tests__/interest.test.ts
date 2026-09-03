@@ -177,6 +177,69 @@ function runTests() {
   const totalWithDeposit = Number(previewDeposit.childAllocations.reduce((s, c) => s + c.calculatedInterest, 0).toFixed(2));
   assert(totalWithDeposit === previewDeposit.totalCalculatedInterest, `Allocation after mid-month deposit is penny-exact ($${totalWithDeposit} === $${previewDeposit.totalCalculatedInterest})`);
 
+  // Test 8: calculateInterestPostingDate
+  const { calculateInterestPostingDate, allocateCustomInterest } = require('../interest');
+  const augFirstOfNext = calculateInterestPostingDate(2026, 8, 'FIRST_OF_NEXT_MONTH');
+  assert(augFirstOfNext === '2026-09-01', `August first of next month is 2026-09-01 (got ${augFirstOfNext})`);
+
+  const augEndOfMonth = calculateInterestPostingDate(2026, 8, 'END_OF_MONTH');
+  assert(augEndOfMonth === '2026-08-31', `August end of month is 2026-08-31 (got ${augEndOfMonth})`);
+
+  const decFirstOfNext = calculateInterestPostingDate(2026, 12, 'FIRST_OF_NEXT_MONTH');
+  assert(decFirstOfNext === '2027-01-01', `December first of next month rolls to 2027-01-01 (got ${decFirstOfNext})`);
+
+  const febLeapEnd = calculateInterestPostingDate(2024, 2, 'END_OF_MONTH');
+  assert(febLeapEnd === '2024-02-29', `Feb 2024 end of month is 2024-02-29 (got ${febLeapEnd})`);
+
+  // Test 9: allocateCustomInterest with large custom total (e.g. $15.00 vs $0.67 base)
+  const baseWeights = [
+    { id: 1, weight: 0.47 },
+    { id: 2, weight: 0.06 },
+    { id: 3, weight: 0.05 },
+    { id: 4, weight: 0.06 },
+    { id: 5, weight: 0.03 },
+  ];
+  const customAlloc = allocateCustomInterest(baseWeights, 15.00);
+  let customSum = 0;
+  customAlloc.forEach((v: number) => (customSum += v));
+  customSum = Number(customSum.toFixed(2));
+  assert(customSum === 15.00, `Custom interest $15.00 allocation matches exactly: $${customSum} === $15.00`);
+  assert(customAlloc.get(1)! > customAlloc.get(2)!, `Child 1 received largest share ($${customAlloc.get(1)})`);
+
+  // Test 10: allocateCustomInterest with zero base weights (equal split fallback)
+  const zeroWeights = [
+    { id: 1, weight: 0 },
+    { id: 2, weight: 0 },
+    { id: 3, weight: 0 },
+  ];
+  const zeroAlloc = allocateCustomInterest(zeroWeights, 5.00);
+  let zeroSum = 0;
+  zeroAlloc.forEach((v: number) => (zeroSum += v));
+  zeroSum = Number(zeroSum.toFixed(2));
+  assert(zeroSum === 5.00, `Zero-weight custom allocation sums exactly to $5.00 (got $${zeroSum})`);
+  assert(zeroAlloc.get(1) === 1.67 && zeroAlloc.get(2) === 1.67 && zeroAlloc.get(3) === 1.66, 'Zero-weight splits pennies 1.67 + 1.67 + 1.66 = 5.00');
+
+  // Test 11: Monte Carlo simulations for allocateCustomInterest (1 to 25 kids with random weights & totals)
+  let monteCarloCustomPassed = true;
+  for (let iter = 0; iter < 1000; iter++) {
+    const kidCount = Math.floor(Math.random() * 25) + 1;
+    const weights = Array.from({ length: kidCount }, (_, i) => ({
+      id: i + 1,
+      weight: Math.random() * 50,
+    }));
+    const targetAmt = Number((Math.random() * 200 + 0.01).toFixed(2));
+    const dist = allocateCustomInterest(weights, targetAmt);
+    let checkSum = 0;
+    dist.forEach((v: number) => (checkSum += v));
+    checkSum = Number(checkSum.toFixed(2));
+    if (Math.abs(checkSum - targetAmt) > 0.001) {
+      monteCarloCustomPassed = false;
+      console.error(`Monte Carlo failure: expected ${targetAmt}, got ${checkSum}`);
+      break;
+    }
+  }
+  assert(monteCarloCustomPassed, '1,000 Monte Carlo simulations verify 0 penny drift in allocateCustomInterest across 1 to 25 children');
+
   console.log(`\nTests completed: ${passed} passed, ${failed} failed.`);
   if (failed > 0) process.exit(1);
 }

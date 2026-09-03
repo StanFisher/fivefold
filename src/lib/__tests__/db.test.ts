@@ -1,4 +1,4 @@
-import { completeOnboarding, getChildren, getSettings, createTransaction, postMonthlyInterest, getMonthInterestPreview, recordReconciliation, getTransactions, deleteTransaction } from '../db';
+import { completeOnboarding, getChildren, getSettings, updateSettings, createTransaction, postMonthlyInterest, getMonthInterestPreview, recordReconciliation, getTransactions, deleteTransaction } from '../db';
 
 function runDbTests() {
   console.log('Running FiveFold Database & Workflow Tests...\n');
@@ -115,18 +115,42 @@ function runDbTests() {
   assert(preview.totalCalculatedInterest > 0, `August interest calculated: $${preview.totalCalculatedInterest}`);
   assert(preview.childAllocations.length === 5, 'All 5 children have interest allocations');
 
-  // 8. Post Monthly Interest
+  // 8. Post Monthly Interest with default FIRST_OF_NEXT_MONTH
   const interestTx = postMonthlyInterest(2026, 8);
   assert(interestTx.type === 'INTEREST', 'Interest transaction posted');
   assert(interestTx.splits.length === 5, 'Interest split amongst 5 children');
+  assert(interestTx.date === '2026-09-01', `Default interest transaction date is 2026-09-01 (got ${interestTx.date})`);
 
   const previewAfter = getMonthInterestPreview(2026, 8);
   assert(previewAfter.alreadyPosted === true, 'August interest now marked as already posted');
 
+  // Test 8b: Delete and post with END_OF_MONTH setting
+  deleteTransaction(interestTx.id);
+  assert(getMonthInterestPreview(2026, 8).alreadyPosted === false, 'August interest is unposted after deleting transaction');
+
+  updateSettings({ interestPostingDay: 'END_OF_MONTH' });
+  assert(getSettings().interestPostingDay === 'END_OF_MONTH', 'Settings successfully updated to END_OF_MONTH');
+
+  const txEndOfMonth = postMonthlyInterest(2026, 8);
+  assert(txEndOfMonth.date === '2026-08-31', `Interest transaction with END_OF_MONTH is 2026-08-31 (got ${txEndOfMonth.date})`);
+
+  // Test 8c: Delete and post with custom date override
+  deleteTransaction(txEndOfMonth.id);
+  const txCustomDate = postMonthlyInterest(2026, 8, undefined, '2026-09-02');
+  assert(txCustomDate.date === '2026-09-02', `Interest transaction with custom date is 2026-09-02 (got ${txCustomDate.date})`);
+
+  // Test 8d: Delete and post with custom amount (e.g. $15.00) and verify zero drift
+  deleteTransaction(txCustomDate.id);
+  const txCustomAmount = postMonthlyInterest(2026, 8, 15.00, '2026-09-01');
+  assert(txCustomAmount.totalAmount === 15.00, 'Custom interest transaction total is $15.00');
+  const sumSplits = Number(txCustomAmount.splits.reduce((s, x) => s + x.amount, 0).toFixed(2));
+  assert(sumSplits === 15.00, `Sum of splits matches $15.00 exactly penny-for-penny (got $${sumSplits})`);
+  assert(txCustomAmount.splits.every((s) => s.amount > 0), 'All 5 children received positive interest');
+
   // 9. Reconciliation check
   const newChildren = getChildren();
   const currentTotal = Number(newChildren.reduce((s, c) => s + (c.balance || 0), 0).toFixed(2));
-  const recon = recordReconciliation(currentTotal, '2026-08-31');
+  const recon = recordReconciliation(currentTotal, '2026-09-01');
   assert(recon.status === 'MATCHED', 'Reconciliation matched exact balance');
   assert(recon.difference === 0, 'Reconciliation difference is $0.00');
 

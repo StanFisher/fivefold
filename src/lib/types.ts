@@ -30,12 +30,15 @@ export interface Transaction {
   splits: TransactionSplit[];
 }
 
+export type InterestPostingDay = 'FIRST_OF_NEXT_MONTH' | 'END_OF_MONTH';
+
 export interface AccountSettings {
   apy: number; // e.g. 5.0 for 5.00%
   accountName: string;
   isOnboarded: boolean;
   lastReconciledDate?: string | null;
   lastReconciledBalance?: number | null;
+  interestPostingDay?: InterestPostingDay;
 }
 
 export interface EnvironmentInfo {
@@ -52,6 +55,7 @@ export interface MonthInterestPreview {
   daysInMonth: number;
   apy: number;
   alreadyPosted: boolean;
+  postingDate?: string; // YYYY-MM-DD
   totalCalculatedInterest: number;
   childAllocations: {
     childId: number;

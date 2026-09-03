@@ -19,13 +19,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { year, month, customAmount } = body;
+    const { year, month, customAmount, postingDate } = body;
 
     if (!year || !month) {
       return NextResponse.json({ error: 'Year and month are required.' }, { status: 400 });
     }
 
-    const tx = postMonthlyInterest(year, month, customAmount);
+    const tx = postMonthlyInterest(year, month, customAmount, postingDate);
     return NextResponse.json({ success: true, transaction: tx });
   } catch (error: any) {
     console.error('Error posting monthly interest:', error);

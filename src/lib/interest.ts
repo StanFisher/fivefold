@@ -1,4 +1,4 @@
-import { Child, MonthInterestPreview, Transaction } from './types';
+import { Child, InterestPostingDay, MonthInterestPreview, Transaction } from './types';
 
 /**
  * Checks if a given year is a leap year.
@@ -28,6 +28,28 @@ export function formatDate(year: number, month: number, day: number): string {
   const m = String(month).padStart(2, '0');
   const d = String(day).padStart(2, '0');
   return `${year}-${m}-${d}`;
+}
+
+/**
+ * Calculates the default posting date for a statement month based on the interestPostingDay setting.
+ */
+export function calculateInterestPostingDate(
+  year: number,
+  month: number,
+  postingDay: InterestPostingDay = 'FIRST_OF_NEXT_MONTH'
+): string {
+  if (postingDay === 'FIRST_OF_NEXT_MONTH') {
+    let nextYear = year;
+    let nextMonth = month + 1;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear++;
+    }
+    return formatDate(nextYear, nextMonth, 1);
+  } else {
+    const daysInMonth = getDaysInMonth(year, month);
+    return formatDate(year, month, daysInMonth);
+  }
 }
 
 /**
@@ -76,6 +98,45 @@ export function distributePenniesExactly(
 }
 
 /**
+ * Proportional Hamilton-Hare distribution for a custom total amount.
+ * Normalizes weights and distributes totalAmount penny-exact across items.
+ * If total weight is 0, items receive an equal share.
+ */
+export function allocateCustomInterest(
+  childWeights: { id: number; weight: number }[],
+  totalAmount: number
+): Map<number, number> {
+  const result = new Map<number, number>();
+  if (childWeights.length === 0) return result;
+  if (totalAmount <= 0) {
+    childWeights.forEach((c) => result.set(c.id, 0));
+    return result;
+  }
+
+  const positiveWeights = childWeights.map((c) => ({
+    id: c.id,
+    weight: Math.max(0, c.weight),
+  }));
+  const totalWeight = positiveWeights.reduce((s, c) => s + c.weight, 0);
+
+  let rawItems: { id: number; rawAmount: number }[];
+  if (totalWeight > 0) {
+    rawItems = positiveWeights.map((c) => ({
+      id: c.id,
+      rawAmount: (c.weight / totalWeight) * totalAmount,
+    }));
+  } else {
+    const equalShare = totalAmount / childWeights.length;
+    rawItems = childWeights.map((c) => ({
+      id: c.id,
+      rawAmount: equalShare,
+    }));
+  }
+
+  return distributePenniesExactly(rawItems, totalAmount);
+}
+
+/**
  * Calculates monthly interest preview for all children based on daily balances and APY.
  */
 export function calculateMonthlyInterest(
@@ -83,7 +144,8 @@ export function calculateMonthlyInterest(
   transactions: Transaction[],
   apy: number,
   year: number,
-  month: number // 1 - 12
+  month: number, // 1 - 12
+  postingDay: InterestPostingDay = 'FIRST_OF_NEXT_MONTH'
 ): MonthInterestPreview {
   const monthPeriod = `${year}-${String(month).padStart(2, '0')}`;
   const daysInMonth = getDaysInMonth(year, month);
@@ -175,6 +237,8 @@ export function calculateMonthlyInterest(
     };
   });
 
+  const postingDate = calculateInterestPostingDate(year, month, postingDay);
+
   return {
     monthPeriod,
     monthName,
@@ -183,6 +247,7 @@ export function calculateMonthlyInterest(
     daysInMonth,
     apy,
     alreadyPosted,
+    postingDate,
     totalCalculatedInterest: roundedTotalInterest,
     childAllocations,
   };

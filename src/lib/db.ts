@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { AccountSettings, Child, EnvironmentInfo, MonthInterestPreview, Transaction, TransactionSplit } from './types';
-import { calculateMonthlyInterest } from './interest';
+import { AccountSettings, Child, EnvironmentInfo, InterestPostingDay, MonthInterestPreview, Transaction, TransactionSplit } from './types';
+import { calculateMonthlyInterest, allocateCustomInterest, calculateInterestPostingDate, distributePenniesExactly } from './interest';
 
 const DB_DIR = path.join(process.cwd(), 'data');
 
@@ -123,6 +123,10 @@ export function getSettings(): AccountSettings {
   const map = new Map<string, string>();
   rows.forEach((r) => map.set(r.key, r.value));
 
+  const postingDayRaw = map.get('interest_posting_day');
+  const interestPostingDay: InterestPostingDay =
+    postingDayRaw === 'END_OF_MONTH' ? 'END_OF_MONTH' : 'FIRST_OF_NEXT_MONTH';
+
   return {
     apy: parseFloat(map.get('apy') || '5.0'),
     accountName: map.get('account_name') || 'Primary Savings',
@@ -131,6 +135,7 @@ export function getSettings(): AccountSettings {
     lastReconciledBalance: map.has('last_reconciled_balance')
       ? parseFloat(map.get('last_reconciled_balance')!)
       : null,
+    interestPostingDay,
   };
 }
 
@@ -159,6 +164,9 @@ export function updateSettings(partial: Partial<AccountSettings>): AccountSettin
         'last_reconciled_balance',
         partial.lastReconciledBalance !== null ? partial.lastReconciledBalance.toString() : ''
       );
+    }
+    if (partial.interestPostingDay !== undefined) {
+      stmt.run('interest_posting_day', partial.interestPostingDay);
     }
   });
 
@@ -395,17 +403,23 @@ export function getMonthInterestPreview(year: number, month: number): MonthInter
   const settings = getSettings();
   const children = getChildren();
   const transactions = getTransactions();
-  return calculateMonthlyInterest(children, transactions, settings.apy, year, month);
+  return calculateMonthlyInterest(children, transactions, settings.apy, year, month, settings.interestPostingDay);
 }
 
-export function postMonthlyInterest(year: number, month: number, customAmount?: number): Transaction {
+export function postMonthlyInterest(
+  year: number,
+  month: number,
+  customAmount?: number,
+  postingDate?: string
+): Transaction {
+  const settings = getSettings();
   const preview = getMonthInterestPreview(year, month);
   if (preview.alreadyPosted) {
     throw new Error(`Interest for ${preview.monthName} has already been posted.`);
   }
 
-  const lastDay = new Date(year, month, 0).getDate();
-  const postingDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const effectivePostingDate =
+    postingDate || calculateInterestPostingDate(year, month, settings.interestPostingDay);
 
   let splits = preview.childAllocations.map((c) => ({
     childId: c.childId,
@@ -415,12 +429,29 @@ export function postMonthlyInterest(year: number, month: number, customAmount?: 
 
   if (customAmount !== undefined && customAmount !== preview.totalCalculatedInterest) {
     total = customAmount;
-    const items = preview.childAllocations.map((c) => ({
+    // Determine proportional weights for custom interest distribution
+    let childWeights = preview.childAllocations.map((c) => ({
       id: c.childId,
-      rawAmount: c.calculatedInterest,
+      weight: c.calculatedInterest,
     }));
-    const { distributePenniesExactly } = require('./interest');
-    const distributed = distributePenniesExactly(items, customAmount);
+    const totalCalcWeight = childWeights.reduce((s, c) => s + c.weight, 0);
+
+    if (totalCalcWeight <= 0) {
+      childWeights = preview.childAllocations.map((c) => ({
+        id: c.childId,
+        weight: Math.max(0, c.averageDailyBalance),
+      }));
+    }
+
+    const totalAdbWeight = childWeights.reduce((s, c) => s + c.weight, 0);
+    if (totalAdbWeight <= 0) {
+      childWeights = preview.childAllocations.map((c) => ({
+        id: c.childId,
+        weight: Math.max(0, c.endBalance),
+      }));
+    }
+
+    const distributed = allocateCustomInterest(childWeights, customAmount);
     splits = preview.childAllocations.map((c) => ({
       childId: c.childId,
       amount: distributed.get(c.childId) || 0,
@@ -428,7 +459,7 @@ export function postMonthlyInterest(year: number, month: number, customAmount?: 
   }
 
   return createTransaction({
-    date: postingDate,
+    date: effectivePostingDate,
     type: 'INTEREST',
     totalAmount: total,
     description: `Monthly Interest - ${preview.monthName} (${preview.apy}% APY)`,

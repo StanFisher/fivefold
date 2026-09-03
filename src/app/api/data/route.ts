@@ -24,7 +24,16 @@ export async function GET() {
     let targetYear = now.getFullYear();
     let targetMonth = now.getMonth() + 1;
 
-    const interestPreview = getMonthInterestPreview(targetYear, targetMonth);
+    let prevMonth = targetMonth - 1;
+    let prevYear = targetYear;
+    if (prevMonth < 1) {
+      prevMonth = 12;
+      prevYear--;
+    }
+    const prevPreview = getMonthInterestPreview(prevYear, prevMonth);
+    const interestPreview = !prevPreview.alreadyPosted
+      ? prevPreview
+      : getMonthInterestPreview(targetYear, targetMonth);
     const totalBalance = Number(
       children.reduce((s, c) => s + (c.balance || 0), 0).toFixed(2)
     );

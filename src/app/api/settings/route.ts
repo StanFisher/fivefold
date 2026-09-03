@@ -14,12 +14,13 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { apy, accountName, children } = body;
+    const { apy, accountName, interestPostingDay, children } = body;
 
-    if (apy !== undefined || accountName !== undefined) {
+    if (apy !== undefined || accountName !== undefined || interestPostingDay !== undefined) {
       updateSettings({
         ...(apy !== undefined ? { apy: parseFloat(apy) } : {}),
         ...(accountName !== undefined ? { accountName } : {}),
+        ...(interestPostingDay !== undefined ? { interestPostingDay } : {}),
       });
     }
 

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Sparkles, CheckCircle2, AlertCircle, Info, Calendar } from 'lucide-react';
 import { MonthInterestPreview } from '@/lib/types';
 import { formatCurrency } from '@/lib/formatters';
+import { allocateCustomInterest } from '@/lib/interest';
 
 interface InterestModalProps {
   isOpen: boolean;
@@ -20,11 +21,28 @@ export function InterestModal({
   initialPreview,
   accountApy,
 }: InterestModalProps) {
-  const now = new Date();
-  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
+  const getInitialYearMonth = () => {
+    if (initialPreview) {
+      return { year: initialPreview.year, month: initialPreview.month };
+    }
+    const now = new Date();
+    let month = now.getMonth(); // 0 is Jan, so if now is Sept (8), month is 8 (August in 1-indexed)
+    let year = now.getFullYear();
+    if (month === 0) {
+      month = 12;
+      year--;
+    }
+    return { year, month };
+  };
+
+  const initialYM = getInitialYearMonth();
+  const [selectedYear, setSelectedYear] = useState<number>(initialYM.year);
+  const [selectedMonth, setSelectedMonth] = useState<number>(initialYM.month);
   const [preview, setPreview] = useState<MonthInterestPreview | null>(initialPreview || null);
-  const [customTotal, setCustomTotal] = useState<string>('');
+  const [customTotal, setCustomTotal] = useState<string>(
+    initialPreview ? initialPreview.totalCalculatedInterest.toFixed(2) : ''
+  );
+  const [postingDate, setPostingDate] = useState<string>(initialPreview?.postingDate || '');
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +56,7 @@ export function InterestModal({
       if (!res.ok) throw new Error(data.error || 'Failed to calculate interest');
       setPreview(data.preview);
       setCustomTotal(data.preview.totalCalculatedInterest.toFixed(2));
+      setPostingDate(data.preview.postingDate || '');
     } catch (err: any) {
       setError(err.message || 'Error fetching interest calculation');
     } finally {
@@ -47,9 +66,46 @@ export function InterestModal({
 
   useEffect(() => {
     if (isOpen) {
+      setError(null);
       fetchPreview(selectedYear, selectedMonth);
     }
   }, [isOpen, selectedYear, selectedMonth]);
+
+  // Dynamically compute child allocations based on customTotal in real-time
+  const dynamicAllocations = useMemo(() => {
+    if (!preview) return [];
+    const parsed = parseFloat(customTotal);
+    if (isNaN(parsed) || parsed === preview.totalCalculatedInterest) {
+      return preview.childAllocations;
+    }
+
+    let weights = preview.childAllocations.map((c) => ({
+      id: c.childId,
+      weight: c.calculatedInterest,
+    }));
+    const totalCalcWeight = weights.reduce((s, c) => s + c.weight, 0);
+
+    if (totalCalcWeight <= 0) {
+      weights = preview.childAllocations.map((c) => ({
+        id: c.childId,
+        weight: Math.max(0, c.averageDailyBalance),
+      }));
+    }
+
+    const totalAdbWeight = weights.reduce((s, c) => s + c.weight, 0);
+    if (totalAdbWeight <= 0) {
+      weights = preview.childAllocations.map((c) => ({
+        id: c.childId,
+        weight: Math.max(0, c.endBalance),
+      }));
+    }
+
+    const distributed = allocateCustomInterest(weights, parsed);
+    return preview.childAllocations.map((c) => ({
+      ...c,
+      calculatedInterest: distributed.get(c.childId) || 0,
+    }));
+  }, [preview, customTotal]);
 
   if (!isOpen) return null;
 
@@ -81,6 +137,7 @@ export function InterestModal({
           year: selectedYear,
           month: selectedMonth,
           customAmount: !isNaN(parsedCustom) ? parsedCustom : undefined,
+          postingDate: postingDate || undefined,
         }),
       });
 
@@ -129,30 +186,47 @@ export function InterestModal({
             </div>
           )}
 
-          {/* Month Navigator */}
-          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/70 rounded-xl p-3">
-            <button
-              type="button"
-              onClick={() => handleMonthChange(-1)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
-            >
-              &larr; Previous Month
-            </button>
-            <div className="text-center">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                Statement Period
-              </span>
-              <span className="text-base font-bold text-slate-900 dark:text-white">
-                {preview?.monthName || `${selectedYear}-${selectedMonth}`}
-              </span>
+          {/* Month Navigator & Posting Date */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/70 rounded-xl p-3">
+              <button
+                type="button"
+                onClick={() => handleMonthChange(-1)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+              >
+                &larr; Previous Month
+              </button>
+              <div className="text-center">
+                <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                  Statement Period
+                </span>
+                <span className="text-base font-bold text-slate-900 dark:text-white">
+                  {preview?.monthName || `${selectedYear}-${selectedMonth}`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleMonthChange(1)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+              >
+                Next Month &rarr;
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => handleMonthChange(1)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
-            >
-              Next Month &rarr;
-            </button>
+
+            {!preview?.alreadyPosted && (
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl px-3.5 py-2 text-xs">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium">
+                  <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Transaction Posting Date:</span>
+                </div>
+                <input
+                  type="date"
+                  value={postingDate}
+                  onChange={(e) => setPostingDate(e.target.value)}
+                  className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                />
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -229,7 +303,7 @@ export function InterestModal({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                      {preview.childAllocations.map((alloc) => {
+                      {dynamicAllocations.map((alloc) => {
                         const newBal = alloc.endBalance + alloc.calculatedInterest;
                         return (
                           <tr key={alloc.childId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
@@ -275,7 +349,7 @@ export function InterestModal({
             <button
               type="button"
               onClick={handlePostInterest}
-              disabled={posting || loading || !preview || preview.totalCalculatedInterest <= 0}
+              disabled={posting || loading || !preview || (parseFloat(customTotal) || preview.totalCalculatedInterest) <= 0}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white bg-amber-600 hover:bg-amber-500 shadow-lg shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
