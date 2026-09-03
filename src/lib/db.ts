@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { AccountSettings, Child, EnvironmentInfo, InterestPostingDay, MonthInterestPreview, Transaction, TransactionSplit } from './types';
+import { AccountSettings, Child, EnvironmentInfo, InterestPostingDay, MonthInterestPreview, ReconciliationRecord, Transaction, TransactionSplit } from './types';
 import { calculateMonthlyInterest, allocateCustomInterest, calculateInterestPostingDate, distributePenniesExactly } from './interest';
 
 const DB_DIR = path.join(process.cwd(), 'data');
@@ -87,9 +87,17 @@ function initSchema(db: Database.Database) {
       calculated_balance REAL NOT NULL,
       difference REAL NOT NULL,
       status TEXT NOT NULL,
+      notes TEXT,
       created_at TEXT NOT NULL
     );
   `);
+
+  try {
+    const columns = db.pragma('table_info(reconciliations)') as { name: string }[];
+    if (columns && columns.length > 0 && !columns.some((c) => c.name === 'notes')) {
+      db.exec('ALTER TABLE reconciliations ADD COLUMN notes TEXT');
+    }
+  } catch (_) {}
 }
 
 // ----------------------------------------------------
@@ -357,6 +365,7 @@ export function completeOnboarding(data: {
       isOnboarded: true,
       lastReconciledDate: date,
       lastReconciledBalance: data.children.reduce((s, c) => s + c.initialAmount, 0),
+      interestPostingDay: 'FIRST_OF_NEXT_MONTH',
     });
 
     const insertChild = db.prepare(`
@@ -472,7 +481,7 @@ export function postMonthlyInterest(
 // RECONCILIATION
 // ----------------------------------------------------
 
-export function recordReconciliation(statementBalance: number, date?: string) {
+export function recordReconciliation(statementBalance: number, date?: string, notes?: string) {
   const db = getDb();
   const reconDate = date || new Date().toISOString().split('T')[0];
   const children = getChildren();
@@ -484,9 +493,9 @@ export function recordReconciliation(statementBalance: number, date?: string) {
   const now = new Date().toISOString();
 
   db.prepare(`
-    INSERT INTO reconciliations (date, statement_balance, calculated_balance, difference, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(reconDate, statementBalance, totalLedgerBalance, difference, status, now);
+    INSERT INTO reconciliations (date, statement_balance, calculated_balance, difference, status, notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(reconDate, statementBalance, totalLedgerBalance, difference, status, notes || null, now);
 
   updateSettings({
     lastReconciledDate: reconDate,
@@ -499,12 +508,14 @@ export function recordReconciliation(statementBalance: number, date?: string) {
     calculatedBalance: totalLedgerBalance,
     difference,
     status,
+    notes: notes || null,
   };
 }
 
-export function getReconciliations() {
+export function getReconciliations(): ReconciliationRecord[] {
   const db = getDb();
   return db
-    .prepare('SELECT id, date, statement_balance as statementBalance, calculated_balance as calculatedBalance, difference, status, created_at as createdAt FROM reconciliations ORDER BY id DESC LIMIT 20')
-    .all();
+    .prepare('SELECT id, date, statement_balance as statementBalance, calculated_balance as calculatedBalance, difference, status, notes, created_at as createdAt FROM reconciliations ORDER BY id DESC LIMIT 20')
+    .all() as ReconciliationRecord[];
 }
+

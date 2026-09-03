@@ -74,3 +74,14 @@ export interface ReconciliationStatus {
   lastReconciledBalance?: number | null;
   isBalanced: boolean;
 }
+
+export interface ReconciliationRecord {
+  id: number;
+  date: string;
+  statementBalance: number;
+  calculatedBalance: number;
+  difference: number;
+  status: 'MATCHED' | 'DISCREPANCY';
+  notes?: string | null;
+  createdAt: string;
+}

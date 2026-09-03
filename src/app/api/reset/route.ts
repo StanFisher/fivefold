@@ -9,7 +9,12 @@ export async function POST() {
       db.prepare('DELETE FROM transactions').run();
       db.prepare('DELETE FROM children').run();
       db.prepare('DELETE FROM reconciliations').run();
-      updateSettings({ isOnboarded: false, lastReconciledBalance: null, lastReconciledDate: null });
+      updateSettings({
+        isOnboarded: false,
+        lastReconciledBalance: null,
+        lastReconciledDate: null,
+        interestPostingDay: 'FIRST_OF_NEXT_MONTH',
+      });
     })();
 
     return NextResponse.json({ success: true });

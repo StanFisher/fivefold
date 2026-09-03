@@ -1,4 +1,4 @@
-import { completeOnboarding, getChildren, getSettings, updateSettings, createTransaction, postMonthlyInterest, getMonthInterestPreview, recordReconciliation, getTransactions, deleteTransaction } from '../db';
+import { completeOnboarding, getChildren, getSettings, updateSettings, createTransaction, postMonthlyInterest, getMonthInterestPreview, recordReconciliation, getReconciliations, getTransactions, deleteTransaction } from '../db';
 
 function runDbTests() {
   console.log('Running FiveFold Database & Workflow Tests...\n');
@@ -150,9 +150,24 @@ function runDbTests() {
   // 9. Reconciliation check
   const newChildren = getChildren();
   const currentTotal = Number(newChildren.reduce((s, c) => s + (c.balance || 0), 0).toFixed(2));
-  const recon = recordReconciliation(currentTotal, '2026-09-01');
+  const recon = recordReconciliation(currentTotal, '2026-09-01', 'August statement penny-match verification');
   assert(recon.status === 'MATCHED', 'Reconciliation matched exact balance');
   assert(recon.difference === 0, 'Reconciliation difference is $0.00');
+  assert(recon.notes === 'August statement penny-match verification', 'Reconciliation notes recorded correctly');
+
+  // 10. Verify getReconciliations returns the record with all fields
+  const pastRecons = getReconciliations();
+  assert(pastRecons.length > 0, 'getReconciliations returns reconciliation list');
+  const latestRecon = pastRecons[0];
+  assert(latestRecon.statementBalance === currentTotal, `Latest recon statementBalance is ${currentTotal}`);
+  assert(latestRecon.date === '2026-09-01', 'Latest recon date is 2026-09-01');
+  assert(latestRecon.notes === 'August statement penny-match verification', 'Latest recon notes match');
+  assert(latestRecon.status === 'MATCHED', 'Latest recon status is MATCHED');
+
+  // Test 9b: Discrepancy reconciliation check
+  const reconDiscrepancy = recordReconciliation(currentTotal + 5.50, '2026-09-02');
+  assert(reconDiscrepancy.status === 'DISCREPANCY', 'Reconciliation detects discrepancy');
+  assert(reconDiscrepancy.difference === -5.50, `Reconciliation difference is -$5.50 (got ${reconDiscrepancy.difference})`);
 
   console.log(`\nDatabase Workflow Tests completed: ${passed} passed, ${failed} failed.`);
   if (failed > 0) process.exit(1);

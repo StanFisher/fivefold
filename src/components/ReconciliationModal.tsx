@@ -43,7 +43,9 @@ export function ReconciliationModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          statementBalance: parsedBank,
           bankBalance: parsedBank,
+          date: statementDate,
           statementDate,
           notes: notes.trim() || undefined,
         }),
@@ -200,8 +202,19 @@ export function ReconciliationModal({
                     key={r.id}
                     className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs"
                   >
-                    <span className="text-slate-700 dark:text-slate-300">{formatDateDisplay(r.statementDate)}</span>
-                    <span className="font-mono text-slate-900 dark:text-white">{formatCurrency(r.bankBalance)}</span>
+                    <div className="flex flex-col">
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">
+                        {formatDateDisplay(r.statementDate || r.date)}
+                      </span>
+                      {r.notes && (
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[140px] sm:max-w-[200px]">
+                          {r.notes}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-slate-900 dark:text-white">
+                      {formatCurrency(r.statementBalance ?? r.bankBalance ?? 0)}
+                    </span>
                     <span
                       className={`font-semibold ${
                         r.status === 'MATCHED' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
